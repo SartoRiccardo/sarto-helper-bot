@@ -2,7 +2,7 @@ import discord
 import asyncio
 
 
-class PaginationEmbed(discord.Embed):
+class InteractiveEmbed(discord.Embed):
     PREV_PAGE = "⬅"
     NEXT_PAGE = "➡"
 
@@ -12,8 +12,8 @@ class PaginationEmbed(discord.Embed):
         self.on_timeout = None if "on_timeout" not in kwargs else kwargs["on_timeout"]
         self.action_buttons = {}
         if "on_page_change" in kwargs:
-            self.action_buttons[PaginationEmbed.PREV_PAGE] = kwargs["on_page_change"]
-            self.action_buttons[PaginationEmbed.NEXT_PAGE] = kwargs["on_page_change"]
+            self.action_buttons[InteractiveEmbed.PREV_PAGE] = kwargs["on_page_change"]
+            self.action_buttons[InteractiveEmbed.NEXT_PAGE] = kwargs["on_page_change"]
         self.timeout = 30.0 if "timeout" not in kwargs else kwargs["timeout"]
         self.closed = False
 
@@ -48,9 +48,9 @@ class PaginationEmbed(discord.Embed):
 
                 callback = self.action_buttons[reaction]
                 change = 0
-                if reaction == PaginationEmbed.PREV_PAGE:
+                if reaction == InteractiveEmbed.PREV_PAGE:
                     change = -1
-                elif reaction == PaginationEmbed.NEXT_PAGE:
+                elif reaction == InteractiveEmbed.NEXT_PAGE:
                     change = 1
                 if not self.closed:
                     await callback(caller=self, change=change, reaction=reaction)
@@ -78,6 +78,7 @@ class PaginationEmbed(discord.Embed):
         self.closed = True
 
     async def delete(self):
-        await self.message.delete()
+        if self.message is not None:
+            await self.message.delete()
+            self.message = None
         self.closed = True
-        self.message = None

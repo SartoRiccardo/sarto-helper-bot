@@ -5,11 +5,11 @@ import modules.data.models.Feed
 class NewFeedCreated(discord.Embed):
     def __init__(self, feed):
         super().__init__(
-            title="Success!",
-            description="You have created a new feed!",
-            color=0xb103fc
+            title=feed.name,
+            description="You can change this feed by using the command "
+                        f"`,feed change {feed.name}`",
+            color=feed.color
         )
-        self.add_field(name="Name", value=feed.name, inline=True)
         self.add_field(name="Tags", value=", ".join([f"`{tag}`" for tag in feed.tags]), inline=True)
         if len(feed.blacklist) > 0:
             self.add_field(name="Blacklist", value=", ".join([f"`{tag}`" for tag in feed.blacklist]), inline=True)
