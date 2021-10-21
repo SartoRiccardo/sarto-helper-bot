@@ -12,7 +12,7 @@ class Feed:
         self.tags = []
         self.webhook = ""
         self.blacklist = []
-        self.color = 0x000000
+        self.color = "000000"
         self.rating = Feed.SFW
 
         if "json" in kwargs:
@@ -57,4 +57,7 @@ class Feed:
 
     def __str__(self):
         return self.json()
+
+    def set_value(self, key, value):
+        setattr(self, key, value)
 

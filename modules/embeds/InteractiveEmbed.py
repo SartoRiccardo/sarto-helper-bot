@@ -29,16 +29,18 @@ class InteractiveEmbed(discord.Embed):
             asyncio.create_task(self._start_interactivity())
 
     async def _start_interactivity(self):
-        def check_reaction(e_payload):
-            return e_payload.user_id == self.ctx.message.author.id and \
-                e_payload.message_id == self.message.id and \
-                str(e_payload.emoji) in self.action_buttons.keys()
+        def check_reaction(message):
+            def inner(e_payload):
+                return e_payload.user_id == self.ctx.message.author.id and \
+                    e_payload.message_id == message.id and \
+                    str(e_payload.emoji) in self.action_buttons.keys()
+            return inner
 
         while not self.closed:
             try:
                 pending = [
-                    self.ctx.bot.wait_for("raw_reaction_add", timeout=self.timeout, check=check_reaction),
-                    self.ctx.bot.wait_for("raw_reaction_remove", timeout=self.timeout, check=check_reaction),
+                    self.ctx.bot.wait_for("raw_reaction_add", timeout=self.timeout, check=check_reaction(self.message)),
+                    self.ctx.bot.wait_for("raw_reaction_remove", timeout=self.timeout, check=check_reaction(self.message)),
                 ]
                 done, pending = await asyncio.wait(pending, return_when=asyncio.FIRST_COMPLETED)
                 for task in pending:
@@ -82,3 +84,18 @@ class InteractiveEmbed(discord.Embed):
             await self.message.delete()
             self.message = None
         self.closed = True
+
+    @classmethod
+    async def from_dict(cls, data, ctx, **kwargs):
+        self = super().from_dict(data)
+        self.ctx = ctx
+        self.on_timeout = None if "on_timeout" not in kwargs else kwargs["on_timeout"]
+        self.action_buttons = {}
+        if "on_page_change" in kwargs:
+            self.action_buttons[InteractiveEmbed.PREV_PAGE] = kwargs["on_page_change"]
+            self.action_buttons[InteractiveEmbed.NEXT_PAGE] = kwargs["on_page_change"]
+        self.timeout = 30.0 if "timeout" not in kwargs else kwargs["timeout"]
+        self.closed = False
+
+        self.message = None
+        return self

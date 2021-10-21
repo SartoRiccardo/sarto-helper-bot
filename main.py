@@ -5,7 +5,7 @@ import asyncio
 import modules.data.connection
 from discord.ext import commands
 
-DEFAULT_PREFIX = ","
+DEFAULT_PREFIX = "," if not hasattr(config, "PREFIX") else config.PREFIX
 bot = commands.Bot(command_prefix=DEFAULT_PREFIX)
 
 

@@ -2,13 +2,13 @@ import discord
 import modules.data.models.Feed
 
 
-class NewFeedCreated(discord.Embed):
+class FeedOverview(discord.Embed):
     def __init__(self, feed):
         super().__init__(
             title=feed.name,
             description="You can change this feed by using the command "
                         f"`,feed change {feed.name}`",
-            color=feed.color
+            color=int(feed.color, 16)
         )
         self.add_field(name="Tags", value=", ".join([f"`{tag}`" for tag in feed.tags]), inline=True)
         if len(feed.blacklist) > 0:

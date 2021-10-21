@@ -1,13 +1,17 @@
 import discord
+import re
 import subprocess
 import asyncio
 from discord.ext import commands
 import modules.data as psql
 from modules.embeds.help import FeedsHelpEmbed
 from modules.embeds.InteractiveEmbed import InteractiveEmbed
-from modules.embeds.success import NewFeedCreated
+from modules.embeds.success import FeedOverview
 from modules.data.models import Feed
 import math
+
+
+SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
 
 
 class FeedCog(commands.Cog):
@@ -23,10 +27,15 @@ class FeedCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    @commands.group()
-    async def feed(self, ctx):
-        if ctx.invoked_subcommand is None:
+    @commands.group(aliases=["feeds"], invoke_without_command=True)
+    async def feed(self, ctx, *args):
+        if ctx.invoked_subcommand is None and len(args) == 0:
             await ctx.send(embed=FeedsHelpEmbed())
+            return
+
+        feed_name = " ".join(args)
+        feed = await psql.feeds.get_feed(feed_name, ignore_case=True)
+        await ctx.send(embed=FeedOverview(feed))
 
     @feed.command()
     @commands.is_owner()
@@ -41,9 +50,13 @@ class FeedCog(commands.Cog):
     @commands.has_role("Feed Manager")
     async def list(self, ctx):
         feeds = await psql.feeds.get_feeds()
-        feeds_per_page = 2
+        feeds_per_page = 15
         pages = math.ceil(len(feeds)/feeds_per_page)
         current = 0
+
+        if pages == 0:
+            await ctx.send("No feeds!")
+            return
 
         async def on_page_change(change=0, caller=None, **kwargs):
             nonlocal current
@@ -97,20 +110,87 @@ class FeedCog(commands.Cog):
             value = await func(ctx, embed, timeout, on_stop=stop_operation, feed=new_feed)
             if stop or value is None:
                 return
-            setattr(new_feed, key, value)
+            new_feed.set_value(key, value)
 
         await psql.feeds.add_feed(new_feed)
-        await ctx.send(embed=NewFeedCreated(new_feed))
+        await ctx.send(embed=FeedOverview(new_feed))
 
     @feed.command(aliases=["delete", "remove"])
     @commands.has_role("Feed Manager")
-    async def _delete(self, ctx):
-        pass
+    async def _delete(self, ctx, *name):
+        name = " ".join(name)
+        feed = await psql.feeds.get_feed(name)
+        if feed is None:
+            await ctx.message.add_reaction("❓")
+            return
 
-    @feed.command()
+        async def cancel(**kwargs):
+            await embed.close()
+
+        async def delete_feed(**kwargs):
+            await psql.feeds.delete_feed(name)
+            await ctx.message.add_reaction(FeedCog.REACTIONS["success"])
+
+        embed = InteractiveEmbed(ctx, title=f"Delete {name}?", color=int(feed.color, 16))
+        embed.add_button(FeedCog.REACTIONS["stop"], cancel)
+        embed.add_button(FeedCog.REACTIONS["proceed"], delete_feed)
+        await embed.send(synchronous=True)
+        await embed.delete()
+
+    @feed.command(aliases=["edit"])
     @commands.has_role("Feed Manager")
-    async def change(self, ctx):
-        pass
+    async def change(self, ctx, *name):
+        name = " ".join(name)
+        feed = await psql.feeds.get_feed(name)
+        if feed is None:
+            await ctx.message.add_reaction("❓")
+            return
+
+        buttons = {
+            "1️⃣": {"field": "name", "function": FeedCog.select_feed_name,
+                    "description": "Feed Name"},
+            "2️⃣": {"field": "webhook", "function": FeedCog.select_feed_webhook,
+                    "description": "Feed Webhook"},
+            "3️⃣": {"field": "tags", "function": FeedCog.select_feed_tags,
+                    "description": "Feed Tags"},
+            "4️⃣": {"field": "blacklist", "function": FeedCog.select_feed_blacklist,
+                    "description": "Feed Blacklist"},
+            "5️⃣": {"field": "rating", "function": FeedCog.select_feed_rating,
+                    "description": "Feed Rating"},
+            "6️⃣": {"field": "color", "function": FeedCog.select_feed_color,
+                    "description": "Feed Color"},
+        }
+        timeout = 60 * 2
+
+        def callback_wrapper(button_config):
+            async def inner(**kwargs):
+                async def abort_changes(**kwargs):
+                    await embed.delete()
+
+                await menu_embed.delete()
+                value = await button_config["function"](ctx, embed, timeout, feed=feed,
+                                                        on_stop=abort_changes)
+                if value is None:
+                    return
+
+                feed.set_value(button_config["field"], value)
+                await psql.feeds.edit_feed(name, feed)
+                await ctx.message.add_reaction(SUCCESS_REACTION)
+            return inner
+
+        async def close(**kwargs):
+            await menu_embed.delete()
+
+        menu_embed = await InteractiveEmbed.from_dict(FeedOverview(feed).to_dict(), ctx)
+        menu_embed.description = "React with the field you want to change:\n"
+        button_list = [f"{key}  {buttons[key]['description']}" for key in buttons]
+        menu_embed.description += "\n".join(button_list)
+        menu_embed.add_button(FeedCog.REACTIONS["stop"], close)
+        for btn in buttons:
+            menu_embed.add_button(btn, callback_wrapper(buttons[btn]))
+
+        embed = InteractiveEmbed(ctx, timeout=timeout, color=int(feed.color, 16))
+        await menu_embed.send(synchronous=True)
 
     @staticmethod
     async def select_feed_name(ctx, embed, timeout, on_stop=None, feed=None, **kwargs):
@@ -134,6 +214,8 @@ class FeedCog(commands.Cog):
             try:
                 message = await ctx.bot.wait_for("message", timeout=timeout, check=FeedCog.check_message(ctx, embed))
                 feed_name = message.content
+                if embed.closed:
+                    return
                 await embed.delete()
                 if await psql.feeds.exists(feed_name):
                     description_err = f"There's already a feed with the name `{feed_name}`!\n\n"
@@ -158,6 +240,8 @@ class FeedCog(commands.Cog):
             try:
                 message = await ctx.bot.wait_for("message", timeout=timeout, check=FeedCog.check_message(ctx, embed))
                 webhook_url = message.content
+                if embed.closed:
+                    return
                 await embed.delete()
                 if not webhook_url.startswith("https://discord.com/api/webhooks/"):
                     embed.description = "That's not an URL to a Discord Webhook! Please paste one.\n\n" \
@@ -193,7 +277,9 @@ class FeedCog(commands.Cog):
                 embed.description = description
                 await embed.send()
                 message = await ctx.bot.wait_for("message", timeout=timeout, check=FeedCog.check_message(ctx, embed))
-                tags = message.content.split(",")
+                if embed.closed:
+                    return
+                tags = message.content.lower().split(",")
                 tags = [t.strip().replace(" ", "_") for t in tags if len(t) > 0]
                 if len(tags) == 0:
                     continue
@@ -245,12 +331,109 @@ class FeedCog(commands.Cog):
                 await on_stop(timed_out=True)
 
     @staticmethod
-    async def select_feed_blacklist(ctx, embed, timeout, on_stop=None, **kwargs):
-        pass
+    async def select_feed_blacklist(ctx, embed, timeout, on_stop=None, feed=None, **kwargs):
+        embed.description = f"Please type the __blacklisted__ tags for your feed. " \
+                            f"Any artwork containing any of these will be discarded. You can " \
+                            f"separate them with commas.\n\n" \
+                            f"A few examples: `loli` `loli,shota`"
+        embed.title = "Select Blacklisted Tags"
+
+        confirm_embed = InteractiveEmbed(ctx, color=int(feed.color, 16))
+        confirm_description = "Do you want to blacklist these tags? `{}`"
+
+        async def confirm(**kwargs):
+            nonlocal confirmed
+            confirmed = True
+            await confirm_embed.close()
+
+        async def retry(**kwargs):
+            await confirm_embed.close()
+
+        confirm_embed.add_button(FeedCog.REACTIONS["proceed"], confirm)
+        confirm_embed.add_button(FeedCog.REACTIONS["stop"], retry)
+
+        while True:
+            try:
+                if on_stop:
+                    embed.add_button(FeedCog.REACTIONS["stop"], on_stop)
+                await embed.send()
+                message = await ctx.bot.wait_for("message", timeout=timeout, check=FeedCog.check_message(ctx, embed))
+                if embed.closed:
+                    return
+                blacklist = message.content.lower()
+                blacklist = [tag.strip().replace(" ", "_") for tag in blacklist.split(",")
+                             if len(tag.strip().replace(" ", "_")) > 0]
+                if len(blacklist) == 0:
+                    continue
+
+                await embed.delete()
+
+                confirmed = False
+                confirm_embed.description = confirm_description.format("`, `".join(blacklist))
+                await confirm_embed.send(synchronous=True)
+                await confirm_embed.delete()
+
+                if confirmed:
+                    return blacklist
+            except asyncio.TimeoutError:
+                if on_stop:
+                    await on_stop(timed_out=True)
 
     @staticmethod
     async def select_feed_color(ctx, embed, timeout, on_stop=None, **kwargs):
-        pass
+        embed.description = f"Select the color of your feed in HEX.\n\n" \
+                            f"A few examples: `ff00ff` `#9b603f`"
+        description_err = "__Invalid color! It must be a hexadecimal value!__\n"
+        embed.title = "Select Feed Color"
+
+        confirm_embed = InteractiveEmbed(ctx)
+        confirm_embed.description = "⬅️\n" \
+                                    "⬅️\n" \
+                                    "⬅️ Is this\n" \
+                                    "⬅️ color ok?\n" \
+                                    "⬅️\n" \
+                                    "⬅️"
+
+        async def confirm(**kwargs):
+            nonlocal confirmed
+            confirmed = True
+            await confirm_embed.close()
+
+        async def retry(**kwargs):
+            await confirm_embed.close()
+
+        confirm_embed.add_button(FeedCog.REACTIONS["proceed"], confirm)
+        confirm_embed.add_button(FeedCog.REACTIONS["stop"], retry)
+
+        color_re = r"^#?([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$"
+        while True:
+            try:
+                if on_stop:
+                    embed.add_button(FeedCog.REACTIONS["stop"], on_stop)
+                await embed.send()
+                message = await ctx.bot.wait_for("message", timeout=timeout, check=FeedCog.check_message(ctx, embed))
+                if embed.closed:
+                    return
+                color = message.content.lower()
+
+                await embed.delete()
+                if not re.search(color_re, color):
+                    embed.description = description_err + embed.description
+                    continue
+                if color.startswith("#"):
+                    color = color[1:]
+
+                confirmed = False
+                confirm_embed.color = int(color, 16)
+                await confirm_embed.send(synchronous=True)
+                await confirm_embed.delete()
+
+                if confirmed:
+                    return color
+                embed.description = embed.description.replace(description_err, "")
+            except asyncio.TimeoutError:
+                if on_stop:
+                    await on_stop(timed_out=True)
 
     @staticmethod
     def check_message(ctx, embed):
