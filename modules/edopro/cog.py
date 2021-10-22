@@ -19,7 +19,7 @@ class EdoProCog(commands.Cog):
     @edopro.command()
     @commands.is_owner()
     async def status(self, ctx):
-        out = subprocess.check_output('ps -aux | grep edopro', shell=True)
+        out = subprocess.check_output('ps -aux | grep multirole', shell=True)
         if len(out.decode().split("\n")) == 4:
             await ctx.message.add_reaction("✅")
         else:
