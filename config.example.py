@@ -4,3 +4,7 @@ DB_USER = ""
 DB_PASSWORD = ""
 DB_NAME = ""
 DB_HOST = ""
+
+REDDIT_ID = "reddit-id"
+REDDIT_SECRET = "reddit-secret"
+REDDIT_AGENT = "app v1.0 (by /u/yourusername)"

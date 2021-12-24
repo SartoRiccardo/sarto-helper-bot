@@ -16,15 +16,17 @@ CREATE TABLE feeds(
 
 
 -- reditor
-DROP TABLE IF EXISTS rdt_video;
+DROP TABLE IF EXISTS rdt_videos;
 DROP TABLE IF EXISTS rdt_threads;
 CREATE TABLE rdt_threads(
     id VARCHAR(6) NOT NULL,
     date_added DATE NOT NULL,
     chosen BOOLEAN NOT NULL DEFAULT FALSE,
+    message BIGINT NOT NULL,
+    msg_index INT NOT NULL,
     PRIMARY KEY (id)
 );
-CREATE TABLE rdt_video(
+CREATE TABLE rdt_videos(
     exported BOOLEAN NOT NULL DEFAULT FALSE,
     thumbnail TEXT,
     title TEXT,

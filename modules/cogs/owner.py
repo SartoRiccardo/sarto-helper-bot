@@ -27,7 +27,7 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def load(self, ctx, name):
         try:
-            self.bot.load_extension(f"modules.{name}.cog")
+            self.bot.load_extension(f"modules.cogs.{name}")
             await ctx.message.add_reaction(SUCCESS_REACTION)
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))
@@ -36,8 +36,8 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def unload(self, ctx, name):
         try:
-            if f"modules.{name}.cog" != __name__:
-                self.bot.unload_extension(f"modules.{name}.cog")
+            if f"modules.cogs.{name}" != __name__:
+                self.bot.unload_extension(f"modules.cogs.{name}")
                 await ctx.message.add_reaction(SUCCESS_REACTION)
             else:
                 await ctx.send(
@@ -50,8 +50,8 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def reload(self, ctx, name):
         try:
-            self.bot.unload_extension(f"modules.{name}.cog")
-            self.bot.load_extension(f"modules.{name}.cog")
+            self.bot.unload_extension(f"modules.cogs.{name}")
+            self.bot.load_extension(f"modules.cogs.{name}")
             await ctx.message.add_reaction(SUCCESS_REACTION)
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))
