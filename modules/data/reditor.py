@@ -9,15 +9,14 @@ async def add_threads(conn, threads):
     for t in threads:
         values.append(t + (today,))
     await conn.executemany(
-        "INSERT INTO rdt_threads (id, message, msg_index, date_added) VALUES ($1, $2, $3, $4)",
+        "INSERT INTO rdt_threads (id, title, message, msg_index, date_added) VALUES ($1, $2, $3, $4, $5)",
         values
     )
 
 
 @postgres
 async def choose_threads(conn, threads):
-    threads = [(t,) for t in threads]
-    await conn.executemany("INSERT INTO rdt_videos(thread) VALUES ($1)", threads)
+    await conn.executemany("INSERT INTO rdt_videos(thread, message) VALUES ($1, $2)", threads)
 
 
 @postgres
@@ -28,7 +27,7 @@ async def get_existing_threads(conn, threads):
 
 
 @postgres
-async def get_threads(conn, message, filter=None):
+async def get_threads(conn, message, filter=None, only_id=False):
     q = "SELECT * FROM rdt_threads WHERE message=$1"
     values = [message]
     if filter:
@@ -36,9 +35,17 @@ async def get_threads(conn, message, filter=None):
         values.append(filter)
 
     ret = await conn.fetch(q, *values)
-    return [r["id"] for r in ret]
+    if only_id:
+        return [r["id"] for r in ret]
+    return [{"id": r["id"], "title": r["title"]} for r in ret]
 
 
 @postgres
 async def remove_old_threads(conn):
     await conn.execute("DELETE FROM rdt_threads WHERE date_added < (CURRENT_DATE - 7)")
+
+
+@postgres
+async def set_video_meta(conn, message_id, title, thumbnail_url):
+    await conn.execute("UPDATE rdt_videos SET title=$1, thumbnail=$2 WHERE message=$3",
+                       title, thumbnail_url, message_id)

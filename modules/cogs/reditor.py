@@ -64,17 +64,19 @@ class REditorCog(commands.Cog):
 
         message = ""
         threads = []
+        titles = []
         n = 1
         for submission in reddit.subreddit("askreddit").hot(limit=10):
             message += f"{n} `⬆️ {submission.score}` {submission.title}\n"
             n += 1
             threads.append(submission.id)
-        return threads, message
+            titles.append(submission.title)
+        return threads, titles, message
 
     async def threads(self):
         await pgsql.reditor.remove_old_threads()
 
-        threads, message = REditorCog.get_askreddit()
+        threads, titles, message = REditorCog.get_askreddit()
         duplicates = await pgsql.reditor.get_existing_threads(threads)
         threads = [id for id in threads if id not in duplicates]
         if len(threads) == 0:
@@ -86,6 +88,7 @@ class REditorCog(commands.Cog):
             color=discord.colour.Colour.purple()
         )
 
+        threads = [(threads[i], titles[i]) for i in range(len(threads))]
         for g in self.bot.guilds:
             category = discord.utils.get(g.categories, name="reditor")
             if not category:
@@ -103,7 +106,7 @@ class REditorCog(commands.Cog):
         for r in reactions:
             await message.add_reaction(r)
 
-        threads = [(threads[i], message.id, i) for i in range(len(threads))]
+        threads = [threads[i] + (message.id, i) for i in range(len(threads))]
         await pgsql.reditor.add_threads(threads)
 
     @commands.Cog.listener()
@@ -120,7 +123,8 @@ class REditorCog(commands.Cog):
             return
 
         thread_channel = discord.utils.get(category.text_channels, name="threads")
-        if not thread_channel or thread_channel.id != payload.channel_id:
+        thumbnail_channel = discord.utils.get(category.text_channels, name="thumbnails")
+        if not thumbnail_channel or not thread_channel or thread_channel.id != payload.channel_id:
             return
 
         message = discord.utils.get(
@@ -137,9 +141,34 @@ class REditorCog(commands.Cog):
                 chosen_threads.append(i)
         await message.clear_reactions()
 
+        threads = await pgsql.reditor.get_threads(payload.message_id, filter=chosen_threads)
+        messages = []
+        for t in threads:
+            messages.append(
+                await thumbnail_channel.send(f"Reply with a title and a thumbnail for **{t['title']}**")
+            )
         await pgsql.reditor.choose_threads(
-            await pgsql.reditor.get_threads(payload.message_id, filter=chosen_threads)
+            [(threads[i]["id"], messages[i].id) for i in range(len(threads))]
         )
+
+    def is_thumbnail_channel(self, guild_id, channel_id):
+        guild = discord.utils.get(self.bot.guilds, id=guild_id)
+        category = discord.utils.get(guild.categories, name="reditor")
+        if not category:
+            return
+        channel = discord.utils.get(category.text_channels, name="thumbnails")
+        return channel and channel.id == channel_id
+
+    @commands.Cog.listener()
+    async def on_message(self, message):
+        if len(message.attachments) == 0 or \
+                not self.is_thumbnail_channel(message.reference.guild_id, message.reference.channel_id):
+            return
+        reply_id = message.reference.message_id
+        title = message.content
+        thumbnail = message.attachments[0].url
+        await pgsql.reditor.set_video_meta(reply_id, title, thumbnail)
+        await message.add_reaction("✅")
 
 
 def setup(bot):
