@@ -1,7 +1,9 @@
 import discord
+from discord.ext import tasks
 import asyncio
 import praw
 import subprocess
+from datetime import datetime, timedelta
 import modules.data as pgsql
 from discord.ext import commands
 from config import REDDIT_AGENT, REDDIT_ID, REDDIT_SECRET
@@ -13,6 +15,11 @@ SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
 class REditorCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
+        self.last_checked = datetime.now()
+        self.threads.start()
+
+    def cog_unload(self):
+        self.threads.stop()
 
     @commands.group(invoke_without_command=True)
     async def reditor(self, ctx, *args):
@@ -49,8 +56,9 @@ class REditorCog(commands.Cog):
         )
 
     @reditor.command()
-    async def forceday(self, ctx):
-        await self.threads()
+    @commands.is_owner()
+    async def force(self):
+        self.last_checked += timedelta(days=100)
 
     @staticmethod
     def get_askreddit():
@@ -73,7 +81,14 @@ class REditorCog(commands.Cog):
             titles.append(submission.title)
         return threads, titles, message
 
+    @tasks.loop(seconds=30)
     async def threads(self):
+        print("checking")
+        if datetime.now() < (self.last_checked + timedelta(seconds=60*60*24)):
+            return
+        print("checked")
+        self.last_checked = datetime.now()
+
         await pgsql.reditor.remove_old_threads()
 
         threads, titles, message = REditorCog.get_askreddit()

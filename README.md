@@ -33,3 +33,6 @@ Type `,edopro` to access all commands dedicated to the server.
 ### REditor
 The REditor module manages the creation of r/AskReddit text-to-speech videos.
 Type `,reditor` to access all commands dedicated to it.
+
+#### Installation
+The REditor module requires `tesseract`, `chromium-browser`.
