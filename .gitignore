@@ -128,3 +128,5 @@ config.json
 config.py
 feeds.json
 .idea
+tmp
+.DS_Store

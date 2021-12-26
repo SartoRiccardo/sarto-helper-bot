@@ -1,10 +1,13 @@
 import discord
 from discord.ext import tasks
 import asyncio
+import os
 import praw
 import subprocess
 from datetime import datetime, timedelta
 import modules.data as pgsql
+import modules.util as util
+from random import randint
 from discord.ext import commands
 from config import REDDIT_AGENT, REDDIT_ID, REDDIT_SECRET
 
@@ -13,13 +16,37 @@ SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
 
 
 class REditorCog(commands.Cog):
+    TIME_KEY = "rdt_last-loop-bot"
+    CHECK_EVERY = 60*60*12
+
     def __init__(self, bot):
         self.bot = bot
-        self.last_checked = datetime.now()
+        self.last_checked = None
+        evt_loop = asyncio.get_event_loop()
+        asyncio.ensure_future(self.init(), loop=evt_loop)
+
+    async def init(self):
+        self.last_checked = await self.get_last_time()
         self.threads.start()
 
     def cog_unload(self):
         self.threads.stop()
+
+    @staticmethod
+    async def get_last_time():
+        last_time = await pgsql.owner.get_config(REditorCog.TIME_KEY)
+        if last_time is None:
+            now = datetime.now()
+            now_str = now.strftime("%Y-%m-%d %H:%M:%S")
+            await pgsql.owner.set_config(REditorCog.TIME_KEY, now_str)
+            return now
+
+        return datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
+
+    @staticmethod
+    async def set_last_time(time):
+        time_str = time.strftime("%Y-%m-%d %H:%M:%S")
+        await pgsql.owner.set_config(REditorCog.TIME_KEY, time_str)
 
     @commands.group(invoke_without_command=True)
     async def reditor(self, ctx, *args):
@@ -27,14 +54,14 @@ class REditorCog(commands.Cog):
             # await ctx.send(embed=EdoProHelpEmbed())
             return
 
-    # @reditor.command()
-    # @commands.is_owner()
-    # async def status(self, ctx):
-    #     out = subprocess.check_output('ps -aux | grep reditor', shell=True)
-    #     if len(out.decode().split("\n")) == 4:
-    #         await ctx.message.add_reaction("✅")
-    #     else:
-    #         await ctx.message.add_reaction("❌")
+    @reditor.command()
+    @commands.is_owner()
+    async def status(self, ctx):
+        out = subprocess.check_output('ps -aux | grep reditor-srv.py', shell=True)
+        if len(out.decode().split("\n")) == 4:
+            await ctx.message.add_reaction("✅")
+        else:
+            await ctx.message.add_reaction("❌")
 
     @reditor.command()
     async def setup(self, ctx):
@@ -83,13 +110,15 @@ class REditorCog(commands.Cog):
 
     @tasks.loop(seconds=30)
     async def threads(self):
-        if datetime.now() < (self.last_checked + timedelta(seconds=60*60*24)):
+        if datetime.now() < (self.last_checked + timedelta(seconds=REditorCog.CHECK_EVERY)):
             return
         self.last_checked = datetime.now()
+        await self.set_last_time(self.last_checked)
 
         await pgsql.reditor.remove_old_threads()
 
         threads, titles, message = REditorCog.get_askreddit()
+        print(threads)
         duplicates = await pgsql.reditor.get_existing_threads(threads)
         threads = [id for id in threads if id not in duplicates]
         if len(threads) == 0:
@@ -175,6 +204,7 @@ class REditorCog(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message):
         if len(message.attachments) == 0 or \
+                message.reference is None or \
                 not self.is_thumbnail_channel(message.reference.guild_id, message.reference.channel_id):
             return
         reply_id = message.reference.message_id
@@ -182,6 +212,34 @@ class REditorCog(commands.Cog):
         thumbnail = message.attachments[0].url
         await pgsql.reditor.set_video_meta(reply_id, title, thumbnail)
         await message.add_reaction("✅")
+
+    @reditor.command()
+    async def thumbnail(self, ctx, *thumbnail_text):
+        if len(ctx.message.attachments) == 0:
+            await ctx.send("You must attach an image!")
+        thumb_img_url = ctx.message.attachments[0].url
+        if not (thumb_img_url.endswith(".png") or thumb_img_url.endswith(".jpg")):
+            await ctx.send("You must attach an image!")
+        thumb_text = " ".join(thumbnail_text)
+
+        tmp_path = os.path.abspath(os.path.dirname(__file__)) + "/../../tmp"
+        if not os.path.exists(tmp_path):
+            os.mkdir(tmp_path)
+
+        rand_id = randint(0, 1000000)
+        source_path = f"{tmp_path}/thumbnail-{rand_id}-src.png"
+        dest_path = f"{tmp_path}/thumbnail-{rand_id}.png"
+
+        util.requests.download_file(thumb_img_url, source_path)
+        util.image.make_thumbnail(thumb_text, source_path, dest_path)
+
+        fp = open(dest_path, "rb")
+        await ctx.send(file=discord.File(fp, filename="thumbnail.png"))
+        fp.close()
+        if os.path.exists(source_path):
+            os.remove(source_path)
+        if os.path.exists(dest_path):
+            os.remove(dest_path)
 
 
 def setup(bot):
