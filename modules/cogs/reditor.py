@@ -83,10 +83,8 @@ class REditorCog(commands.Cog):
 
     @tasks.loop(seconds=30)
     async def threads(self):
-        print("checking")
         if datetime.now() < (self.last_checked + timedelta(seconds=60*60*24)):
             return
-        print("checked")
         self.last_checked = datetime.now()
 
         await pgsql.reditor.remove_old_threads()
