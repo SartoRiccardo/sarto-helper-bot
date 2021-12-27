@@ -27,10 +27,10 @@ class REditorCog(commands.Cog):
 
     async def init(self):
         self.last_checked = await self.get_last_time()
-        self.threads.start()
+        self.daily_threads.start()
 
     def cog_unload(self):
-        self.threads.stop()
+        self.daily_threads.stop()
 
     @staticmethod
     async def get_last_time():
@@ -43,8 +43,8 @@ class REditorCog(commands.Cog):
 
         return datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
 
-    @staticmethod
-    async def set_last_time(time):
+    async def set_last_time(self, time):
+        self.last_checked = time
         time_str = time.strftime("%Y-%m-%d %H:%M:%S")
         await pgsql.owner.set_config(REditorCog.TIME_KEY, time_str)
 
@@ -84,8 +84,11 @@ class REditorCog(commands.Cog):
 
     @reditor.command()
     @commands.is_owner()
-    async def force(self):
-        self.last_checked += timedelta(days=100)
+    async def force(self, ctx):
+        await self.set_last_time(
+            self.last_checked - timedelta(seconds=REditorCog.CHECK_EVERY*100)
+        )
+        await ctx.message.add_reaction("✅")
 
     @staticmethod
     def get_askreddit():
@@ -109,16 +112,14 @@ class REditorCog(commands.Cog):
         return threads, titles, message
 
     @tasks.loop(seconds=30)
-    async def threads(self):
+    async def daily_threads(self):
         if datetime.now() < (self.last_checked + timedelta(seconds=REditorCog.CHECK_EVERY)):
             return
-        self.last_checked = datetime.now()
-        await self.set_last_time(self.last_checked)
+        await self.set_last_time(datetime.now())
 
         await pgsql.reditor.remove_old_threads()
 
         threads, titles, message = REditorCog.get_askreddit()
-        print(threads)
         duplicates = await pgsql.reditor.get_existing_threads(threads)
         threads = [id for id in threads if id not in duplicates]
         if len(threads) == 0:
