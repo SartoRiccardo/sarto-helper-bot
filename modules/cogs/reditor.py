@@ -215,13 +215,12 @@ class REditorCog(commands.Cog):
         await message.add_reaction("✅")
 
     @reditor.command()
-    async def thumbnail(self, ctx, *thumbnail_text):
+    async def thumbnail(self, ctx, *, thumb_text):
         if len(ctx.message.attachments) == 0:
             await ctx.send("You must attach an image!")
         thumb_img_url = ctx.message.attachments[0].url
         if not (thumb_img_url.endswith(".png") or thumb_img_url.endswith(".jpg")):
             await ctx.send("You must attach an image!")
-        thumb_text = " ".join(thumbnail_text)
 
         tmp_path = os.path.abspath(os.path.dirname(__file__)) + "/../../tmp"
         if not os.path.exists(tmp_path):
