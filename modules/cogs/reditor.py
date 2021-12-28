@@ -1,15 +1,16 @@
-import discord
-from discord.ext import tasks
-import asyncio
 import os
+import discord
+import asyncio
 import praw
+import importlib
 import subprocess
+from random import randint
 from datetime import datetime, timedelta
+from discord.ext import commands, tasks
+
 import modules.data as pgsql
 import modules.util as util
 from modules.embeds.help import REditorHelpEmbed
-from random import randint
-from discord.ext import commands
 from config import REDDIT_AGENT, REDDIT_ID, REDDIT_SECRET
 
 
@@ -31,6 +32,8 @@ class REditorCog(commands.Cog):
         self.daily_threads.start()
 
     def cog_unload(self):
+        importlib.reload(pgsql)
+        importlib.reload(util)
         self.daily_threads.stop()
 
     @staticmethod
