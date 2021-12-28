@@ -7,6 +7,7 @@ import subprocess
 from datetime import datetime, timedelta
 import modules.data as pgsql
 import modules.util as util
+from modules.embeds.help import REditorHelpEmbed
 from random import randint
 from discord.ext import commands
 from config import REDDIT_AGENT, REDDIT_ID, REDDIT_SECRET
@@ -51,8 +52,7 @@ class REditorCog(commands.Cog):
     @commands.group(invoke_without_command=True)
     async def reditor(self, ctx, *args):
         if ctx.invoked_subcommand is None and len(args) == 0:
-            # await ctx.send(embed=EdoProHelpEmbed())
-            return
+            await ctx.send(embed=REditorHelpEmbed())
 
     @reditor.command()
     @commands.is_owner()
@@ -240,6 +240,21 @@ class REditorCog(commands.Cog):
             os.remove(source_path)
         if os.path.exists(dest_path):
             os.remove(dest_path)
+
+    @reditor.command(aliases=["ready"])
+    async def available(self, ctx):
+        videos_ready = await pgsql.reditor.get_uploadable()
+        if len(videos_ready) == 0:
+            message = "There are no videos ready!"
+        else:
+            message = f"There are {len(videos_ready)}{'+' if len(videos_ready) > 5 else ''} videos ready:"
+            n = 1
+            for v in videos_ready:
+                message += f"\n{n}. {v['title']}"
+                n += 1
+            if len(videos_ready) > 5:
+                message += "\n..."
+        await ctx.send(embed=discord.Embed(title="Vidos Ready", description=message))
 
 
 def setup(bot):

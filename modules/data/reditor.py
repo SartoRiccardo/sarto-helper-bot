@@ -15,6 +15,11 @@ async def add_threads(conn, threads):
 
 
 @postgres
+async def get_uploadable(conn):
+    return await conn.fetch("SELECT * FROM rdt_videos WHERE exported AND url IS NOT NULL")
+
+
+@postgres
 async def choose_threads(conn, threads):
     await conn.executemany("INSERT INTO rdt_videos(thread, message) VALUES ($1, $2)", threads)
 
