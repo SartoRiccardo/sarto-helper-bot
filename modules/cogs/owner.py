@@ -1,3 +1,4 @@
+import re
 import discord
 import importlib
 import subprocess
@@ -96,7 +97,7 @@ class Owner(commands.Cog):
         cmd = "ps -o pid,%mem,command ax | sort -b -k3 -r"
         to_check = ["multirole", "sarto-helper-bot", "reditor-srv", "discordbooru"]
         out = subprocess.check_output(cmd, shell=True).decode()
-        out = " ".join(out.split())
+        out = re.compile(r" +").sub(" ", out)
 
         message = "```\n" + \
                   " P.ID   |  %MEM  |  PROCESS"
