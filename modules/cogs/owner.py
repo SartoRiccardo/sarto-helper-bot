@@ -1,8 +1,11 @@
 import discord
-import modules.data as pgsql
+import importlib
+import modules.data
+import modules.data.owner
 from discord.ext import commands
 import modules.embeds.help
 CogHelpEmbed = modules.embeds.help.CogHelpEmbed
+pgsql = modules.data
 
 
 SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
@@ -14,8 +17,8 @@ class Owner(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
 
-    def unload(self):
-        pass
+    def cog_unload(self):
+        importlib.reload(modules.data.owner)
 
     @commands.group()
     @commands.is_owner()

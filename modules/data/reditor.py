@@ -1,5 +1,6 @@
-from modules.data.connection import postgres
+import modules.data.connection
 from datetime import datetime
+postgres = modules.data.connection.postgres
 
 
 @postgres
@@ -47,7 +48,18 @@ async def get_threads(conn, message, filter=None, only_id=False):
 
 @postgres
 async def remove_old_threads(conn):
-    await conn.execute("DELETE FROM rdt_threads WHERE date_added < (CURRENT_DATE - 7)")
+    await conn.execute("""
+        DELETE FROM rdt_threads thr
+        USING rdt_videos vid
+        WHERE thr.date_added < (CURRENT_DATE - 7) AND (
+            (
+              vid.thread = thr.id
+              AND NOT vid.exported
+            ) OR (
+              thr.id NOT IN (SELECT thread FROM rdt_videos)
+            )
+        )
+    """)
 
 
 @postgres

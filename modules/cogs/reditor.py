@@ -7,11 +7,14 @@ import subprocess
 from random import randint
 from datetime import datetime, timedelta
 from discord.ext import commands, tasks
-
-import modules.data as pgsql
-import modules.util as util
+import modules.data
+import modules.data.owner
+import modules.data.reditor
+import modules.util
 from modules.embeds.help import REditorHelpEmbed
 from config import REDDIT_AGENT, REDDIT_ID, REDDIT_SECRET
+pgsql = modules.data
+util = modules.util
 
 
 SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
@@ -32,7 +35,8 @@ class REditorCog(commands.Cog):
         self.daily_threads.start()
 
     def cog_unload(self):
-        importlib.reload(pgsql)
+        importlib.reload(modules.data.reditor)
+        importlib.reload(modules.data.owner)
         importlib.reload(util)
         self.daily_threads.stop()
 
@@ -253,11 +257,15 @@ class REditorCog(commands.Cog):
             message = f"There are {len(videos_ready)}{'+' if len(videos_ready) > 5 else ''} videos ready:"
             n = 1
             for v in videos_ready:
-                message += f"\n{n}. {v['title']}"
+                message += f"\n{n}. **{v['title']}**"
                 n += 1
             if len(videos_ready) > 5:
                 message += "\n..."
-        await ctx.send(embed=discord.Embed(title="Vidos Ready", description=message))
+        await ctx.send(embed=discord.Embed(
+            title="Vidos Ready",
+            description=message,
+            color=discord.colour.Colour.blue()
+        ))
 
 
 def setup(bot):

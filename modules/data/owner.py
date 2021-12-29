@@ -1,4 +1,5 @@
-from modules.data.connection import postgres
+import modules.data.connection
+postgres = modules.data.connection.postgres
 
 
 @postgres
