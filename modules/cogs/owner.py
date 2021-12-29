@@ -95,13 +95,12 @@ class Owner(commands.Cog):
     async def ram(self, ctx):
         cmd = "ps -o pid,%mem,command ax | sort -b -k3 -r"
         to_check = ["multirole", "sarto-helper-bot", "reditor-srv", "discordbooru"]
-        out = subprocess.check_output(cmd, shell=True)\
-            .decode()\
-            .split("\n")
+        out = subprocess.check_output(cmd, shell=True).decode()
+        out = " ".join(out.split())
 
         message = "```\n" + \
                   " P.ID   |  %MEM  |  PROCESS"
-        for ln in out:
+        for ln in out.split("\n"):
             ln = ln.strip()
             for c in to_check:
                 if c in ln:
