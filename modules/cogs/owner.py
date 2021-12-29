@@ -1,5 +1,6 @@
 import discord
 import importlib
+import subprocess
 import modules.data
 import modules.data.owner
 from discord.ext import commands
@@ -81,6 +82,38 @@ class Owner(commands.Cog):
                 await ctx.send(f"Variable `{key}` is unset.")
             else:
                 await ctx.send(f"Variable `{key}` is set to `{value}`.")
+
+    @commands.group()
+    @commands.is_owner()
+    async def server(self, ctx):
+        if ctx.invoked_subcommand is None:
+            # await ctx.send(embed=ServerHelpEmbed())
+            pass
+
+    @server.command()
+    @commands.is_owner()
+    async def ram(self, ctx):
+        cmd = "ps -o pid,%mem,command ax | sort -b -k3 -r"
+        to_check = ["multirole", "sarto-helper-bot", "reditor-srv", "discordbooru"]
+        out = subprocess.check_output(cmd, shell=True)\
+            .decode()\
+            .split("\n")
+
+        message = "```\n" + \
+                  " P.ID   |  %MEM  |  PROCESS"
+        for ln in out:
+            ln = ln.strip()
+            for c in to_check:
+                if c in ln:
+                    message += "\n" + self.format_ps(ln)
+                    break
+        message += "\n```"
+        await ctx.send(message)
+
+    @staticmethod
+    def format_ps(ps_str):
+        pid, mem, process = ps_str.split(" ", 2)
+        return f"{pid:<6}  |  {mem:<4}  |  {process}"
 
 
 def setup(bot):
