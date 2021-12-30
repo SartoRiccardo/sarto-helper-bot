@@ -262,9 +262,9 @@ class REditorCog(commands.Cog):
             if len(videos_ready) > 5:
                 message += "\n..."
         await ctx.send(embed=discord.Embed(
-            title="Vidos Ready",
+            title="Videos Ready",
             description=message,
-            color=discord.colour.Colour.blue()
+            color=discord.colour.Colour.purple()
         ))
 
 
