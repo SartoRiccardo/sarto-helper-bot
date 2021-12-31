@@ -16,6 +16,11 @@ async def add_threads(conn, threads):
 
 
 @postgres
+async def get_exportable(conn):
+    return await conn.fetch("SELECT * FROM rdt_videos WHERE NOT exported AND thumbnail IS NOT NULL")
+
+
+@postgres
 async def get_uploadable(conn):
     return await conn.fetch("SELECT * FROM rdt_videos WHERE exported AND url IS NULL")
 
