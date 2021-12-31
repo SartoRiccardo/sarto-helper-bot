@@ -266,7 +266,7 @@ class REditorCog(commands.Cog):
         if len(videos_exportable) == 0:
             message += "\n\nThere are no videos exportable! A random one will be picked."
         else:
-            message += f"There are **{len(videos_exportable)}** videos that can be exported."
+            message += f"\n\nThere are **{len(videos_exportable)}** videos that can be exported."
         await ctx.send(embed=discord.Embed(
             title="Videos Ready",
             description=message,
