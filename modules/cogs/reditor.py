@@ -251,6 +251,7 @@ class REditorCog(commands.Cog):
     @reditor.command(aliases=["ready"])
     async def available(self, ctx):
         videos_ready = await pgsql.reditor.get_uploadable()
+        videos_exportable = await pgsql.reditor.get_exportable()
         if len(videos_ready) == 0:
             message = "There are no videos ready!"
         else:
@@ -261,6 +262,11 @@ class REditorCog(commands.Cog):
                 n += 1
             if len(videos_ready) > 5:
                 message += "\n..."
+
+        if len(videos_exportable) == 0:
+            message += "\n\nThere are no videos exportable! A random one will be picked."
+        else:
+            message += f"There are **{len(videos_exportable)}** videos that can be exported."
         await ctx.send(embed=discord.Embed(
             title="Videos Ready",
             description=message,

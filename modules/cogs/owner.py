@@ -100,7 +100,7 @@ class Owner(commands.Cog):
         out = re.compile(r" +").sub(" ", out)
 
         message = "```\n" + \
-                  " P.ID   |  %MEM  |  PROCESS"
+                  " P.ID     |  %MEM  |  PROCESS"
         for ln in out.split("\n"):
             ln = ln.strip()
             for c in to_check:
@@ -113,7 +113,7 @@ class Owner(commands.Cog):
     @staticmethod
     def format_ps(ps_str):
         pid, mem, process = ps_str.split(" ", 2)
-        return f"{pid:<6}  |  {mem:<4}  |  {process}"
+        return f"{pid:<8}  |  {mem:<4}  |  {process}"
 
 
 def setup(bot):
