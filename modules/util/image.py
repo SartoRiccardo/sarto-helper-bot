@@ -11,11 +11,6 @@ STROKE_COLOR = (26, 35, 126)
 THUMB_SIZE = (1280, 720)
 
 BLACK = (0, 0, 0, 255)
-hti = None
-html_template_post = None
-css_post = None
-html_template_comment = None
-css_comment = None
 
 
 def make_thumbnail(text, image_path, save_path, max_chars_per_line=20):
@@ -55,3 +50,12 @@ def make_thumbnail(text, image_path, save_path, max_chars_per_line=20):
                 stroke_fill=STROKE_COLOR, stroke_width=STROKE_WIDTH)
     base.paste(watermark, (0, THUMB_SIZE[1]-wm_h), watermark)
     base.save(save_path)
+    base.close()
+
+    # YT thumbnails can't be > 2mb
+    while os.stat(save_path).st_size > 2000000:
+        thumb = Image.open(save_path)
+        width, height = thumb.size
+        thumb = thumb.resize((int(width*0.9), int(height*0.9)), Image.ANTIALIAS)
+        thumb.save(save_path)
+        thumb.close()
