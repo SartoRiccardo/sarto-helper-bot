@@ -126,7 +126,7 @@ class REditorCog(commands.Cog):
 
         threads = REditorCog.get_askreddit()
         debug_msg = f"Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
-        duplicates = await pgsql.reditor.get_existing_threads(threads)
+        duplicates = await pgsql.reditor.get_existing_threads([t['id'] for t in threads])
         debug_msg += f"Dupe threads: `{'`, `'.join(duplicates)}`\n"
         threads = [t for t in threads if t["id"] not in duplicates][:10]
         debug_msg += f"Final threads: `{'`, `'.join([t['id'] for t in threads])}`\n"
