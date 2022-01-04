@@ -127,8 +127,12 @@ class REditorCog(commands.Cog):
         await pgsql.reditor.remove_old_threads()
 
         threads, titles, message = REditorCog.get_askreddit()
+        debug_msg = f"Threads gotten: `{'`, `'.join(threads)}`\n"
         duplicates = await pgsql.reditor.get_existing_threads(threads)
+        debug_msg += f"Dupe threads: `{'`, `'.join(duplicates)}`\n"
         threads = [id for id in threads if id not in duplicates]
+        debug_msg += f"Final threads: `{'`, `'.join(threads)}`\n"
+        await util.logger.Logger.log(debug_msg, util.logger.Logger.DEBUG)
         if len(threads) == 0:
             return
 
@@ -178,7 +182,7 @@ class REditorCog(commands.Cog):
             return
 
         message = discord.utils.get(
-            await thread_channel.history(limit=7).flatten(),
+            await thread_channel.history(limit=14).flatten(),
             id=payload.message_id
         )
         if not message:
@@ -189,6 +193,7 @@ class REditorCog(commands.Cog):
             r = message.reactions[i]
             if r.count > 1:
                 chosen_threads.append(i)
+        await util.logger.Logger.log(f"Chosen indexes: {chosen_threads}", util.logger.Logger.DEBUG)
         await message.clear_reactions()
 
         threads = await pgsql.reditor.get_threads(payload.message_id, filter=chosen_threads)
