@@ -135,9 +135,11 @@ class REditorCog(commands.Cog):
             return
 
         message = ""
+        score_len = len(str(max([t['score'] for t in threads])))  # Get the digit number of the highest score
+        msg_template = "{}. `↑ {:<" + str(score_len) + "}` {}\n"
         for i in range(len(threads)):
             t = threads[i]
-            message += f"{i+1}. `↑ {t['score']:<6}` {t['title']}\n"
+            message += msg_template.format(i+1, t['score'], t['title'])
 
         embed = discord.Embed(
             title="Threads of today",
@@ -160,7 +162,8 @@ class REditorCog(commands.Cog):
 
         message = await thread_channel.send(f"Today's threads:\n", embed=embed)
         reactions = ["1️⃣", "2️⃣",  "3️⃣",  "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "✅"]
-        for r in reactions:
+        for i in range(min(len(reactions), len(threads))):
+            r = reactions[i]
             await message.add_reaction(r)
 
         threads = [threads[i] + (message.id, i) for i in range(len(threads))]
