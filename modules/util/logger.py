@@ -22,7 +22,9 @@ class Logger:
         last_log = datetime.now()
 
         title = "Info"
-        if severity == Logger.SUCCESS:
+        if severity == Logger.DEBUG:
+            title = "Debug"
+        elif severity == Logger.SUCCESS:
             title = "Success"
         elif severity == Logger.ERROR:
             title = "Error"

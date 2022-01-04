@@ -107,16 +107,14 @@ class REditorCog(commands.Cog):
         )
         reddit.read_only = True
 
-        message = ""
         threads = []
-        titles = []
-        n = 1
-        for submission in reddit.subreddit("askreddit").hot(limit=10):
-            message += f"{n} `⬆️ {submission.score}` {submission.title}\n"
-            n += 1
-            threads.append(submission.id)
-            titles.append(submission.title)
-        return threads, titles, message
+        for submission in reddit.subreddit("askreddit").hot(limit=20):
+            threads.append({
+                "id": submission.id,
+                "title": submission.title,
+                "score": submission.score
+            })
+        return threads
 
     @tasks.loop(seconds=30)
     async def daily_threads(self):
@@ -126,15 +124,20 @@ class REditorCog(commands.Cog):
 
         await pgsql.reditor.remove_old_threads()
 
-        threads, titles, message = REditorCog.get_askreddit()
-        debug_msg = f"Threads gotten: `{'`, `'.join(threads)}`\n"
+        threads = REditorCog.get_askreddit()
+        debug_msg = f"Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
         duplicates = await pgsql.reditor.get_existing_threads(threads)
         debug_msg += f"Dupe threads: `{'`, `'.join(duplicates)}`\n"
-        threads = [id for id in threads if id not in duplicates]
-        debug_msg += f"Final threads: `{'`, `'.join(threads)}`\n"
+        threads = [t for t in threads if t["id"] not in duplicates][:10]
+        debug_msg += f"Final threads: `{'`, `'.join([t['id'] for t in threads])}`\n"
         await util.logger.Logger.log(debug_msg, util.logger.Logger.DEBUG)
         if len(threads) == 0:
             return
+
+        message = ""
+        for i in range(len(threads)):
+            t = threads[i]
+            message += f"{i+1}. `↑ {t['score']:<6}` {t['title']}\n"
 
         embed = discord.Embed(
             title="Threads of today",
@@ -142,7 +145,7 @@ class REditorCog(commands.Cog):
             color=discord.colour.Colour.purple()
         )
 
-        threads = [(threads[i], titles[i]) for i in range(len(threads))]
+        threads = [(threads[i]["id"], threads[i]["title"]) for i in range(len(threads))]
         for g in self.bot.guilds:
             category = discord.utils.get(g.categories, name="reditor")
             if not category:
