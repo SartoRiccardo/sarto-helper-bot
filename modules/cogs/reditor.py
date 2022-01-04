@@ -38,7 +38,9 @@ class REditorCog(commands.Cog):
         importlib.reload(modules.data.reditor)
         importlib.reload(modules.data.owner)
         importlib.reload(modules.util.logger)
+        importlib.reload(modules.util.image)
         importlib.reload(util)
+        importlib.reload(pgsql)
         self.daily_threads.stop()
 
     @staticmethod
