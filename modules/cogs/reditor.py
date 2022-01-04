@@ -37,6 +37,7 @@ class REditorCog(commands.Cog):
     def cog_unload(self):
         importlib.reload(modules.data.reditor)
         importlib.reload(modules.data.owner)
+        importlib.reload(modules.util.logger)
         importlib.reload(util)
         self.daily_threads.stop()
 
@@ -161,10 +162,11 @@ class REditorCog(commands.Cog):
             return
 
         message = await thread_channel.send(f"Today's threads:\n", embed=embed)
-        reactions = ["1️⃣", "2️⃣",  "3️⃣",  "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟", "✅"]
+        reactions = ["1️⃣", "2️⃣",  "3️⃣",  "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
         for i in range(min(len(reactions), len(threads))):
             r = reactions[i]
             await message.add_reaction(r)
+        await message.add_reaction("✅")
 
         threads = [threads[i] + (message.id, i) for i in range(len(threads))]
         await pgsql.reditor.add_threads(threads)
