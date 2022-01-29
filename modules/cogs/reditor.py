@@ -274,7 +274,7 @@ class REditorCog(commands.Cog):
             n = 1
             for v in videos_ready:
                 title = f"**{v['title']}**"
-                if not title:
+                if not v['title']:
                     server = ctx.guild.id
                     category = discord.utils.get(ctx.guild.categories, name="reditor")
                     if not category:
