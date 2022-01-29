@@ -7,6 +7,7 @@ import modules.data.owner
 from discord.ext import commands
 import modules.embeds.help
 CogHelpEmbed = modules.embeds.help.CogHelpEmbed
+ConfigHelpEmbed = modules.embeds.help.ConfigHelpEmbed
 pgsql = modules.data
 
 
@@ -21,6 +22,7 @@ class Owner(commands.Cog):
 
     def cog_unload(self):
         importlib.reload(modules.data.owner)
+        importlib.reload(modules.embeds.help)
 
     @commands.group()
     @commands.is_owner()
@@ -69,7 +71,19 @@ class Owner(commands.Cog):
 
     @commands.command()
     @commands.is_owner()
-    async def config(self, ctx, key, *args):
+    async def config(self, ctx, key=None, *args):
+        special_procedures = {
+            "list": self.config_list,
+            None: self.config_help,
+            "help": self.config_help,
+            "remove": self.config_remove,
+            "unset": self.config_remove,
+            "delete": self.config_remove,
+        }
+        if key in special_procedures.keys():
+            await special_procedures[key](ctx, *args)
+            return
+
         new_value = None
         if args:
             new_value = " ".join(args)
@@ -78,11 +92,29 @@ class Owner(commands.Cog):
             await pgsql.owner.set_config(key, new_value)
             await ctx.message.add_reaction(SUCCESS_REACTION)
         else:
+
             value = await pgsql.owner.get_config(key)
             if value is None:
                 await ctx.send(f"Variable `{key}` is unset.")
             else:
                 await ctx.send(f"Variable `{key}` is set to `{value}`.")
+
+    @staticmethod
+    async def config_help(ctx, *args):
+        await ctx.send(embed=ConfigHelpEmbed())
+        return
+
+    @staticmethod
+    async def config_list(ctx, *args):
+        keys = await pgsql.owner.get_all_config_keys()
+        keys = [f"`{k['name']}`" for k in keys]
+        await ctx.send(", ".join(keys))
+
+    @staticmethod
+    async def config_remove(ctx, key, *args):
+        print(key, args)
+        await pgsql.owner.del_config(key)
+        await ctx.message.add_reaction(SUCCESS_REACTION)
 
     @commands.group()
     @commands.is_owner()

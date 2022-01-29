@@ -14,6 +14,17 @@ class CogHelpEmbed(discord.Embed):
         self.add_field(name="reload (name)", value="Unloads and loads a cog simultaneously", inline=True)
 
 
+class ConfigHelpEmbed(discord.Embed):
+    def __init__(self):
+        super().__init__(
+            title="Using the \"config\" command",
+            description="Manages the bot's config variables. Owner only.",
+            color=0xb103fc
+        )
+        self.add_field(name="list", value="Lists all set variable keys", inline=True)
+        self.add_field(name="remove (key)", value="Deletes a variable", inline=True)
+
+
 class FeedsHelpEmbed(discord.Embed):
     def __init__(self):
         super().__init__(

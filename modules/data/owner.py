@@ -23,3 +23,8 @@ async def get_config(conn, key):
 @postgres
 async def del_config(conn, key):
     await conn.execute("DELETE FROM config WHERE name = $1", key)
+
+
+@postgres
+async def get_all_config_keys(conn):
+    return await conn.fetch("SELECT name FROM config")
