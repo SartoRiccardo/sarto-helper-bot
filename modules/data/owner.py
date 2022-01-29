@@ -10,6 +10,9 @@ async def set_config(conn, key, value):
 
 @postgres
 async def get_config(conn, key):
+    if type(key) == list:
+        return [(await get_config(k)) for k in key]
+
     data = await conn.fetch("SELECT * FROM config WHERE name = $1", key)
     if len(data) == 0:
         return None

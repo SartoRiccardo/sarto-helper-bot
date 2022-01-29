@@ -31,8 +31,9 @@ class Logger:
         elif severity == Logger.WARN:
             title = "Warning"
 
-        webhook_url = await modules.data.owner.get_config("rdt_logger")
-        if webhook_url is None:
+        webhook_url, debug = await modules.data.owner.get_config(["rdt_logger", "rdt_debug"])
+        if webhook_url is None or \
+                not (debug is None or bool(debug)) and severity == Logger.DEBUG:
             return
         embed = {"embeds": [{
             "title": title,

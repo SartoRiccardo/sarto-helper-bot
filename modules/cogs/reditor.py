@@ -301,6 +301,19 @@ class REditorCog(commands.Cog):
             color=discord.colour.Colour.purple()
         ))
 
+    @reditor.command()
+    async def logging(self, ctx, level):
+        positive = ["on", "y", "yes", "true", "t"]
+        negative = ["off", "n", "no", "false", "f"]
+        if level.lower() not in positive+negative:
+            await ctx.send("Usage: `,reditor logging (on|off)`")
+            return
+
+        if level.lower() in positive:
+            await pgsql.owner.set_config("rdt_logging", "True")
+        else:
+            await pgsql.owner.set_config("rdt_logging", "False")
+
 
 def setup(bot):
     bot.add_cog(REditorCog(bot))
