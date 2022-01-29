@@ -273,7 +273,20 @@ class REditorCog(commands.Cog):
             message = f"There are {len(videos_ready)}{'+' if len(videos_ready) > 5 else ''} videos ready:"
             n = 1
             for v in videos_ready:
-                message += f"\n{n}. **{v['title']}**"
+                title = v['title']
+                if not title:
+                    server = ctx.guild.id
+                    category = discord.utils.get(ctx.guild.categories, name="reditor")
+                    if not category:
+                        message += f"\n{n}. *⚠️ Unknown video*"
+                        continue
+                    thumbnails = discord.utils.get(category.text_channels, name="thumbnails")
+                    if not thumbnails:
+                        message += f"\n{n}. *⚠️ Unknown video*"
+                        continue
+                    title = f"⚠️ https://discord.com/channels/{server}/{thumbnails.id}/{v['message']}"
+
+                message += f"\n{n}. **{title}**"
                 n += 1
             if len(videos_ready) > 5:
                 message += "\n..."
