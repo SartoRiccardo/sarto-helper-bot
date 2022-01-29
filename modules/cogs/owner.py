@@ -21,8 +21,11 @@ class Owner(commands.Cog):
         self.bot = bot
 
     def cog_unload(self):
-        importlib.reload(modules.data.owner)
-        importlib.reload(modules.embeds.help)
+        try:
+            importlib.reload(modules.data.owner)
+            importlib.reload(modules.embeds.help)
+        except:
+            pass
 
     @commands.group()
     @commands.is_owner()

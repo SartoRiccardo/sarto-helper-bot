@@ -1,4 +1,5 @@
 import os
+import csv
 import discord
 import asyncio
 import praw
@@ -340,6 +341,44 @@ class REditorCog(commands.Cog):
         else:
             await pgsql.owner.set_config("rdt_debug", "False")
             await ctx.message.add_reaction("✅")
+
+    @reditor.command()
+    async def characters(self, ctx):
+        reditor_path = await pgsql.owner.get_config("rdt_reditor-server-path")
+        if not reditor_path:
+            await ctx.send("Please set the config variable `rdt_reditor-server-path` to the path of "
+                           "the REditor server.")
+            return
+
+        overview = self.get_character_overview(reditor_path + "data/logs/text-to-speech.csv")
+        last_months = 5
+        last_keys = overview.keys()[-last_months:]
+
+        message = f"**Characters in the last {last_months} months:**"
+        for k in last_keys:
+            message += f"\n`{k}`: `{overview['k']:<8}`"
+            if overview['k'] > 4000000:
+                message += " ⚠️"
+        embed = discord.Embed(description=message, color=discord.colour.Colour.purple())
+        await ctx.send(embed=embed)
+
+    @staticmethod
+    def get_character_overview(log_path):
+        ret = {}
+        fout = open(log_path, "r")
+        reader = csv.reader(fout, delimiter=";")
+
+        for timestamp, text, voice in reader:
+            timestamp = float(timestamp)
+            log_time = datetime.fromtimestamp(timestamp)
+            key = f"{log_time.year}-{log_time.month}"
+            if key not in ret:
+                ret[key] = len(text)
+            else:
+                ret[key] += len(text)
+
+        fout.close()
+        return ret
 
 
 def setup(bot):
