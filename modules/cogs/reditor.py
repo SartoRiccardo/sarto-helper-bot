@@ -311,8 +311,10 @@ class REditorCog(commands.Cog):
 
         if level.lower() in positive:
             await pgsql.owner.set_config("rdt_logging", "True")
+            await ctx.message.add_reaction("✅")
         else:
             await pgsql.owner.set_config("rdt_logging", "False")
+            await ctx.message.add_reaction("✅")
 
 
 def setup(bot):
