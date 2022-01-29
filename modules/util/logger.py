@@ -33,12 +33,13 @@ class Logger:
 
         webhook_url, debug = await modules.data.owner.get_config(["rdt_logger", "rdt_debug"])
         if webhook_url is None or \
-                not (debug is None or bool(debug)) and severity == Logger.DEBUG:
+                not (debug == "True") and severity == Logger.DEBUG:
             return
         embed = {"embeds": [{
             "title": title,
             "color": severity,
-            "description": message
+            "description": message,
+            "footer": {"text": "sarto-helper-bot"}
         }]}
         # TODO use aiohttp
         requests.post(webhook_url, json=embed)

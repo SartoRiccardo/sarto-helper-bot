@@ -335,10 +335,10 @@ class REditorCog(commands.Cog):
             return
 
         if level.lower() in positive:
-            await pgsql.owner.set_config("rdt_logging", "True")
+            await pgsql.owner.set_config("rdt_debug", "True")
             await ctx.message.add_reaction("✅")
         else:
-            await pgsql.owner.set_config("rdt_logging", "False")
+            await pgsql.owner.set_config("rdt_debug", "False")
             await ctx.message.add_reaction("✅")
 
 
