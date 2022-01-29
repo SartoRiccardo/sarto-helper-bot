@@ -350,14 +350,15 @@ class REditorCog(commands.Cog):
                            "the REditor server.")
             return
 
+        await ctx.message.add_reaction("🕐")
         overview = self.get_character_overview(reditor_path + "data/logs/text-to-speech.csv")
         last_months = 5
-        last_keys = overview.keys()[-last_months:]
+        last_keys = list(overview.keys())[-last_months:]
 
         message = f"**Characters in the last {last_months} months:**"
         for k in last_keys:
-            message += f"\n`{k}`: `{overview['k']:<8}`"
-            if overview['k'] > 4000000:
+            message += f"\n`{k}`: `{overview[k]:>10,}`"
+            if overview[k] > 4000000:
                 message += " ⚠️"
         embed = discord.Embed(description=message, color=discord.colour.Colour.purple())
         await ctx.send(embed=embed)
