@@ -357,7 +357,7 @@ class REditorCog(commands.Cog):
 
         message = f"**Characters in the last {last_months} months:**"
         for k in last_keys:
-            message += f"\n`{k}`: `{overview[k]:>10,}`"
+            message += f"\n`{k:<7}`: `{overview[k]:>10,}`"
             if overview[k] > 4000000:
                 message += " ⚠️"
         embed = discord.Embed(description=message, color=discord.colour.Colour.purple())
