@@ -2,5 +2,5 @@ pillow
 urllib3
 discord.py
 asyncpg
-praw
+asyncpraw
 aiofiles

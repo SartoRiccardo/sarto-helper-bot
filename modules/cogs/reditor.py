@@ -2,7 +2,7 @@ import os
 import csv
 import discord
 import asyncio
-import praw
+import asyncpraw
 import importlib
 import subprocess
 from random import randint
@@ -102,8 +102,8 @@ class REditorCog(commands.Cog):
         await ctx.message.add_reaction("✅")
 
     @staticmethod
-    def get_askreddit():
-        reddit = praw.Reddit(
+    async def get_askreddit():
+        reddit = asyncpraw.Reddit(
             client_id=REDDIT_ID, client_secret=REDDIT_SECRET, user_agent=REDDIT_AGENT,
             check_for_updates="False", comment_kind="t1", message_kind="t4", redditor_kind="t2",
             submission_kind="t3", subreddit_kind="t5", trophy_kind="t6", oauth_url="https://oauth.reddit.com",
@@ -112,7 +112,7 @@ class REditorCog(commands.Cog):
         reddit.read_only = True
 
         threads = []
-        for submission in reddit.subreddit("askreddit").hot(limit=20):
+        async for submission in (await reddit.subreddit("askreddit")).hot(limit=20):
             threads.append({
                 "id": submission.id,
                 "title": submission.title,
@@ -128,7 +128,7 @@ class REditorCog(commands.Cog):
 
         await pgsql.reditor.remove_old_threads()
 
-        threads = REditorCog.get_askreddit()
+        threads = await REditorCog.get_askreddit()
         debug_msg = f"Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
         duplicates = await pgsql.reditor.get_existing_threads([t['id'] for t in threads])
         debug_msg += f"Dupe threads: `{'`, `'.join(duplicates)}`\n"
