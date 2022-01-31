@@ -56,10 +56,10 @@ async def remove_old_threads(conn):
     await conn.execute("""
         DELETE FROM rdt_threads thr
         USING rdt_videos vid
-        WHERE thr.date_added < (CURRENT_DATE - 7) AND (
+        WHERE thr.date_added < (CURRENT_DATE - 30) AND (
             (
               vid.thread = thr.id
-              AND NOT vid.exported
+              AND NOT (vid.exported OR vid.thumbnail)
             ) OR (
               thr.id NOT IN (SELECT thread FROM rdt_videos)
             )
