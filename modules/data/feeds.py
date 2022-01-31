@@ -1,7 +1,7 @@
-from modules.data.connection import postgres
-from modules.data.models import Feed
+import modules.data.models
 import json
 import modules.data.owner
+Feed = modules.data.models.Feed
 
 DISCORDBOORU_PATH_KEY = "feeds-path"
 DISCORDBOORU_FEEDS_PATH = "feeds.json"

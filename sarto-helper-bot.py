@@ -13,10 +13,13 @@ if __name__ == '__main__':
     asyncio.get_event_loop().run_until_complete(modules.data.connection.start())
 
     bot.remove_command("help")
-    bot.load_extension("modules.owner.cog")
+    bot.load_extension("modules.cogs.owner")
 
-    cogs = ["modules.feeds.cog"]
+    cogs = ["feeds", "edopro", "reditor"]
     for cog in cogs:
-        bot.load_extension(cog)
+        try:
+            bot.load_extension(f"modules.cogs.{cog}")
+        except discord.ext.commands.errors.ExtensionNotFound as e:
+            print(f"Could not load {e.name}")
 
     bot.run(config.TOKEN)

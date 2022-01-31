@@ -1,14 +1,17 @@
 import discord
 import re
 import subprocess
+import importlib
 import asyncio
 from discord.ext import commands
-import modules.data as psql
+import modules.data
+import modules.data.feeds
 from modules.embeds.help import FeedsHelpEmbed
 from modules.embeds.InteractiveEmbed import InteractiveEmbed
 from modules.embeds.success import FeedOverview
 from modules.data.models import Feed
 import math
+psql = modules.data
 
 
 SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
@@ -26,6 +29,9 @@ class FeedCog(commands.Cog):
 
     def __init__(self, bot):
         self.bot = bot
+
+    def cog_unload(self):
+        importlib.reload(modules.data.owner)
 
     @commands.group(aliases=["feeds"], invoke_without_command=True)
     async def feed(self, ctx, *args):

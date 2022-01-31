@@ -1,4 +1,5 @@
-from modules.data.connection import postgres
+import modules.data.connection
+postgres = modules.data.connection.postgres
 
 
 @postgres
@@ -9,6 +10,9 @@ async def set_config(conn, key, value):
 
 @postgres
 async def get_config(conn, key):
+    if type(key) == list:
+        return [(await get_config(k)) for k in key]
+
     data = await conn.fetch("SELECT * FROM config WHERE name = $1", key)
     if len(data) == 0:
         return None
@@ -19,3 +23,8 @@ async def get_config(conn, key):
 @postgres
 async def del_config(conn, key):
     await conn.execute("DELETE FROM config WHERE name = $1", key)
+
+
+@postgres
+async def get_all_config_keys(conn):
+    return await conn.fetch("SELECT name FROM config")

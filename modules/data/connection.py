@@ -6,10 +6,13 @@ connection = None
 
 async def start():
     global connection
-    connection = await asyncpg.create_pool(
-        user=config.DB_USER, password=config.DB_PASSWORD,
-        database=config.DB_NAME, host=config.DB_HOST
-    )
+    try:
+        connection = await asyncpg.create_pool(
+            user=config.DB_USER, password=config.DB_PASSWORD,
+            database=config.DB_NAME, host=config.DB_HOST
+        )
+    except:
+        print("PGSQL CONNECTION IS NOT SET - ERROR CONNECTING")
 
 
 def postgres(func):

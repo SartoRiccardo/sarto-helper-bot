@@ -128,3 +128,6 @@ config.json
 config.py
 feeds.json
 .idea
+tmp
+.DS_Store
+modules/cogs/test.py

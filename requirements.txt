@@ -1,2 +1,6 @@
+pillow
+urllib3
 discord.py
 asyncpg
+asyncpraw
+aiofiles
