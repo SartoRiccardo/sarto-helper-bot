@@ -235,6 +235,13 @@ class REditorCog(commands.Cog):
         title = message.content
         thumbnail = message.attachments[0].url
         await pgsql.reditor.set_video_meta(reply_id, title, thumbnail)
+
+        reference = message.reference.cached_message
+        if not reference:
+            history = await message.channel.history(limit=100).flatten()
+            reference = discord.utils.get(history, id=reply_id)
+        if reference and reference.author.id == self.bot.user.id:
+            await reference.edit(content=reference.content[:39] + reference.content[41:-2])
         await message.add_reaction("✅")
 
     @reditor.command()
