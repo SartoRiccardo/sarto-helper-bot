@@ -285,7 +285,7 @@ class REditorCog(commands.Cog):
         source_path = f"{tmp_path}/thumbnail-{rand_id}-src.png"
         dest_path = f"{tmp_path}/thumbnail-{rand_id}.png"
 
-        util.requests.download_file(thumb_img_url, source_path)
+        await util.requests.download_file(thumb_img_url, source_path)
         util.image.make_thumbnail(thumb_text, source_path, dest_path)
 
         fp = open(dest_path, "rb")

@@ -1,5 +1,5 @@
 import modules.data.owner
-import requests
+import aiohttp
 from datetime import datetime, timedelta
 import time
 
@@ -41,5 +41,6 @@ class Logger:
             "description": message,
             "footer": {"text": "sarto-helper-bot"}
         }]}
-        # TODO use aiohttp
-        requests.post(webhook_url, json=embed)
+        
+        with aiohttp.ClientSession() as session:
+            session.post(webhook_url, json=embed)
