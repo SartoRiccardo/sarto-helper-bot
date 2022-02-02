@@ -59,7 +59,7 @@ async def remove_old_threads(conn):
         WHERE thr.date_added < (CURRENT_DATE - 30) AND (
             (
               vid.thread = thr.id
-              AND NOT (vid.exported OR vid.thumbnail)
+              AND NOT (vid.exported OR vid.thumbnail IS NOT NULL)
             ) OR (
               thr.id NOT IN (SELECT thread FROM rdt_videos)
             )
