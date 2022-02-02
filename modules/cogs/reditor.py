@@ -240,7 +240,7 @@ class REditorCog(commands.Cog):
         if not reference:
             history = await message.channel.history(limit=100).flatten()
             reference = discord.utils.get(history, id=reply_id)
-        if reference and reference.author.id == self.bot.user.id:
+        if reference and reference.author.id == self.bot.user.id and not reference.edited_at:
             await reference.edit(content=reference.content[:39] + reference.content[41:-2])
         await message.add_reaction("✅")
 
