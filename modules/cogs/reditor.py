@@ -130,9 +130,9 @@ class REditorCog(commands.Cog):
 
         subs_to_check = ["askreddit", "askmen"]
         for sub in subs_to_check:
-            self.send_hot_threads(sub)
+            await self.send_hot_threads(sub)
 
-    def send_hot_threads(self, sub):
+    async def send_hot_threads(self, sub):
         threads = await REditorCog.get_askreddit(sub)
         debug_msg = f"Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
         duplicates = await pgsql.reditor.get_existing_threads([t['id'] for t in threads])
