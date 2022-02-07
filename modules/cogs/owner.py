@@ -6,6 +6,7 @@ import modules.data
 import modules.data.owner
 from discord.ext import commands
 import modules.embeds.help
+import aiofiles
 CogHelpEmbed = modules.embeds.help.CogHelpEmbed
 ConfigHelpEmbed = modules.embeds.help.ConfigHelpEmbed
 pgsql = modules.data
@@ -149,6 +150,20 @@ class Owner(commands.Cog):
     def format_ps(ps_str):
         pid, mem, process = ps_str.split(" ", 2)
         return f"{pid:<8}  |  {mem:<4}  |  {process}"
+
+    @commands.command()
+    @commands.is_owner()
+    async def traceback(self, ctx):
+        fin = await aiofiles.open("nohup.out")
+        buffer = [""] * 20
+        i = 0
+        async for ln in fin:
+            buffer[i] = ln
+            i = (i+1) % len(buffer)
+        fin.close()
+
+        traceback_str = "".join(buffer[i:] + buffer[0:i])
+        await ctx.send(f"```\n{traceback_str}\n```")
 
 
 def setup(bot):

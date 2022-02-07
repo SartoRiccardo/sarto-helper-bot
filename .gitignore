@@ -131,3 +131,4 @@ feeds.json
 tmp
 .DS_Store
 modules/cogs/test.py
+nohup.out
