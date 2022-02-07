@@ -102,7 +102,7 @@ class REditorCog(commands.Cog):
         await ctx.message.add_reaction("✅")
 
     @staticmethod
-    async def get_askreddit():
+    async def get_askreddit(subreddit):
         reddit = asyncpraw.Reddit(
             client_id=REDDIT_ID, client_secret=REDDIT_SECRET, user_agent=REDDIT_AGENT,
             check_for_updates="False", comment_kind="t1", message_kind="t4", redditor_kind="t2",
@@ -112,10 +112,10 @@ class REditorCog(commands.Cog):
         reddit.read_only = True
 
         threads = []
-        async for submission in (await reddit.subreddit("askreddit")).hot(limit=20):
+        async for submission in (await reddit.subreddit(subreddit)).hot(limit=20):
             threads.append({
                 "id": submission.id,
-                "title": submission.title,
+                "replies": submission.replies,
                 "score": submission.score
             })
         return threads
@@ -128,7 +128,12 @@ class REditorCog(commands.Cog):
 
         await pgsql.reditor.remove_old_threads()
 
-        threads = await REditorCog.get_askreddit()
+        subs_to_check = ["askreddit", "askmen"]
+        for sub in subs_to_check:
+            self.send_hot_threads(sub)
+
+    def send_hot_threads(self, sub):
+        threads = await REditorCog.get_askreddit(sub)
         debug_msg = f"Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
         duplicates = await pgsql.reditor.get_existing_threads([t['id'] for t in threads])
         debug_msg += f"Dupe threads: `{'`, `'.join(duplicates)}`\n"
@@ -140,7 +145,7 @@ class REditorCog(commands.Cog):
 
         message = ""
         score_len = len(str(max([t['score'] for t in threads])))  # Get the digit number of the highest score
-        msg_template = "{}. `↑ {:<" + str(score_len) + "}` {}\n"
+        msg_template = "{}. `^ {:<" + str(score_len) + "}` {}\n"
         for i in range(len(threads)):
             t = threads[i]
             message += msg_template.format(i+1, t['score'], t['title'])
@@ -148,8 +153,8 @@ class REditorCog(commands.Cog):
         embed = discord.Embed(
             title="Threads of today",
             description=message,
-            color=discord.colour.Colour.purple()
-        )
+            color=discord.colour.Colour.purple(),
+        ).set_footer(text=f"r/{sub}")
 
         threads = [(threads[i]["id"], threads[i]["title"]) for i in range(len(threads))]
         for g in self.bot.guilds:
