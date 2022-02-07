@@ -115,7 +115,7 @@ class REditorCog(commands.Cog):
         async for submission in (await reddit.subreddit(subreddit)).hot(limit=20):
             threads.append({
                 "id": submission.id,
-                "replies": submission.replies,
+                "title": submission.title,
                 "score": submission.score
             })
         return threads
