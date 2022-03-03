@@ -15,7 +15,7 @@ if __name__ == '__main__':
     bot.remove_command("help")
     bot.load_extension("modules.cogs.owner")
 
-    cogs = ["feeds", "edopro", "reditor"]
+    cogs = ["feeds", "edopro", "reditor", "thumbnail"]
     for cog in cogs:
         try:
             bot.load_extension(f"modules.cogs.{cog}")

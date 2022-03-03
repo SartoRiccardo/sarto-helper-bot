@@ -1,11 +1,9 @@
-import os
 import csv
 import discord
 import asyncio
 import asyncpraw
 import importlib
 import subprocess
-from random import randint
 from datetime import datetime, timedelta
 from discord.ext import commands, tasks
 import modules.data
@@ -248,58 +246,6 @@ class REditorCog(commands.Cog):
         if reference and reference.author.id == self.bot.user.id and not reference.edited_at:
             await reference.edit(content=reference.content[:39] + reference.content[41:-2])
         await message.add_reaction("✅")
-
-    @reditor.command()
-    async def thumbnail(self, ctx, *, thumb_text):
-        if len(ctx.message.attachments) == 0:
-            # Fallback if no image attached
-            if not ctx.message.reference:
-                # Use last image sent in the channel by a non-bot user
-                thumb_img_url = None
-                history = await ctx.channel.history(limit=100).flatten()
-                for message in history:
-                    if not message.author.bot and len(message.attachments) > 0:
-                        thumb_img_url = message.attachments[0].url
-                        break
-                if not thumb_img_url:
-                    await ctx.send("You must attach an image!")
-                    return
-            else:
-                # If replying to a message, use that message's image, if any.
-                reference = ctx.message.reference
-                if reference.cached_message:
-                    message = reference.cached_message
-                else:
-                    message = discord.utils.get(await ctx.channel.history(limit=100).flatten(), id=reference.message_id)
-                    if not message:
-                        await ctx.send("Are you replying to a message that's too old? Please send the image again!")
-                        return
-                thumb_img_url = message.attachments[0].url
-        else:
-            thumb_img_url = ctx.message.attachments[0].url
-
-        if not (thumb_img_url.endswith(".png") or thumb_img_url.endswith(".jpg")):
-            await ctx.send("You must attach an image!")
-            return
-
-        tmp_path = os.path.abspath(os.path.dirname(__file__)) + "/../../tmp"
-        if not os.path.exists(tmp_path):
-            os.mkdir(tmp_path)
-
-        rand_id = randint(0, 1000000)
-        source_path = f"{tmp_path}/thumbnail-{rand_id}-src.png"
-        dest_path = f"{tmp_path}/thumbnail-{rand_id}.png"
-
-        await util.requests.download_file(thumb_img_url, source_path)
-        util.image.make_thumbnail(thumb_text, source_path, dest_path)
-
-        fp = open(dest_path, "rb")
-        await ctx.send(file=discord.File(fp, filename="thumbnail.png"))
-        fp.close()
-        if os.path.exists(source_path):
-            os.remove(source_path)
-        if os.path.exists(dest_path):
-            os.remove(dest_path)
 
     @reditor.command(aliases=["ready"])
     async def available(self, ctx):
