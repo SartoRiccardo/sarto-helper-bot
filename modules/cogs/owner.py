@@ -131,7 +131,7 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def ram(self, ctx):
         cmd = "ps -o pid,%mem,command ax | sort -b -k3 -r"
-        to_check = ["multirole", "sarto-helper-bot", "reditor-srv", "discordbooru", "mizuchi"]
+        to_check = ["multirole", "sarto-helper-bot", "reditor-srv", "discordbooru", "mizuchi", "pixivcord"]
         out = subprocess.check_output(cmd, shell=True).decode()
         out = re.compile(r" +").sub(" ", out)
 
