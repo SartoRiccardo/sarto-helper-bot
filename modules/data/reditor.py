@@ -1,4 +1,5 @@
 import os
+import shutil
 import modules.util
 import modules.data.connection
 from datetime import datetime
@@ -90,7 +91,7 @@ async def discard_video(conn, thread_id=None, message_id=None):
         export_path = os.path.join(reditor_path, "exports", f"{thread_id}-export")
         if os.path.exists(export_path):
             await modules.util.logger.Logger.log(f"Deleting {export_path}", modules.util.logger.Logger.INFO)
-            os.rmdir(export_path)
+            shutil.rmtree(export_path)
 
         return True
 
