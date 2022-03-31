@@ -42,5 +42,5 @@ class Logger:
             "footer": {"text": "sarto-helper-bot"}
         }]}
         
-        with aiohttp.ClientSession() as session:
-            session.post(webhook_url, json=embed)
+        async with aiohttp.ClientSession() as session:
+            await session.post(webhook_url, json=embed)
