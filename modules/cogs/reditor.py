@@ -179,6 +179,34 @@ class REditorCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
+        await asyncio.gather(*[
+            self.check_for_thread_confirmation(payload),
+            self.check_for_video_deletion(payload),
+        ])
+
+    async def check_for_video_deletion(self, payload):
+        if str(payload.emoji) != "❌":
+            return
+
+        guild = discord.utils.get(self.bot.guilds, id=payload.guild_id)
+        if guild.owner_id != payload.user_id:
+            return
+
+        category = discord.utils.get(guild.categories, name="reditor")
+        if not category:
+            return
+
+        thumbnail_channel = discord.utils.get(category.text_channels, name="thumbnails")
+        if not thumbnail_channel or thumbnail_channel.id != payload.channel_id:
+            return
+
+        await pgsql.reditor.discard_video(message_id=payload.message_id)
+
+    async def check_for_thread_confirmation(self, payload):
+        """
+        Listen for thread confirmation
+        :return: bool: Whether the
+        """
         if str(payload.emoji) != "✅":
             return
 

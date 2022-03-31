@@ -1,3 +1,5 @@
+import os
+import modules.util
 import modules.data.connection
 from datetime import datetime
 postgres = modules.data.connection.postgres
@@ -71,3 +73,25 @@ async def remove_old_threads(conn):
 async def set_video_meta(conn, message_id, title, thumbnail_url):
     await conn.execute("UPDATE rdt_videos SET title=$1, thumbnail=$2 WHERE message=$3",
                        title, thumbnail_url, message_id)
+
+
+@postgres
+async def discard_video(conn, thread_id=None, message_id=None):
+    if message_id and not thread_id:
+        results = await conn.fetch("SELECT thread FROM rdt_videos WHERE message=$1", message_id)
+        if len(results) == 0:
+            return False
+        thread_id = results[0]["thread"]
+        await conn.execute("DELETE FROM rdt_threads WHERE id=$1", thread_id)
+
+        reditor_path = await modules.data.owner.get_config("rdt_reditor-server-path")
+        if reditor_path is None:
+            return True
+        export_path = os.path.join(reditor_path, "exports", f"{thread_id}-export")
+        if os.path.exists(export_path):
+            await modules.util.logger.Logger.log(f"Deleting {export_path}", modules.util.logger.Logger.INFO)
+            os.rmdir(export_path)
+
+        return True
+
+    return False
