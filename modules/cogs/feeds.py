@@ -452,5 +452,5 @@ class FeedCog(commands.Cog):
         return inner
 
 
-def setup(bot):
-    bot.add_cog(FeedCog(bot))
+async def setup(bot):
+    await bot.add_cog(FeedCog(bot))

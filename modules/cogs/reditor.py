@@ -1,17 +1,17 @@
 import csv
+import random
+import os
 import discord
 import asyncio
-import asyncpraw
 import importlib
 import subprocess
-from datetime import datetime, timedelta
-from discord.ext import commands, tasks
+from datetime import datetime
+from discord.ext import commands
 import modules.data
 import modules.data.owner
 import modules.data.reditor
 import modules.util
 from modules.embeds.help import REditorHelpEmbed
-from config import REDDIT_AGENT, REDDIT_ID, REDDIT_SECRET
 pgsql = modules.data
 util = modules.util
 
@@ -20,18 +20,9 @@ SUCCESS_REACTION = '\N{THUMBS UP SIGN}'
 
 
 class REditorCog(commands.Cog):
-    TIME_KEY = "rdt_last-loop-bot"
-    CHECK_EVERY = 60*60*12
-
     def __init__(self, bot):
         self.bot = bot
         self.last_checked = None
-        evt_loop = asyncio.get_event_loop()
-        asyncio.ensure_future(self.init(), loop=evt_loop)
-
-    async def init(self):
-        self.last_checked = await self.get_last_time()
-        self.daily_threads.start()
 
     def cog_unload(self):
         importlib.reload(modules.data.reditor)
@@ -40,23 +31,6 @@ class REditorCog(commands.Cog):
         importlib.reload(modules.util.image)
         importlib.reload(util)
         importlib.reload(pgsql)
-        self.daily_threads.stop()
-
-    @staticmethod
-    async def get_last_time():
-        last_time = await pgsql.owner.get_config(REditorCog.TIME_KEY)
-        if last_time is None:
-            now = datetime.now()
-            now_str = now.strftime("%Y-%m-%d %H:%M:%S")
-            await pgsql.owner.set_config(REditorCog.TIME_KEY, now_str)
-            return now
-
-        return datetime.strptime(last_time, "%Y-%m-%d %H:%M:%S")
-
-    async def set_last_time(self, time):
-        self.last_checked = time
-        time_str = time.strftime("%Y-%m-%d %H:%M:%S")
-        await pgsql.owner.set_config(REditorCog.TIME_KEY, time_str)
 
     @commands.group(invoke_without_command=True)
     async def reditor(self, ctx, *args):
@@ -91,100 +65,14 @@ class REditorCog(commands.Cog):
             return_when=asyncio.ALL_COMPLETED
         )
 
-    @reditor.command()
-    @commands.is_owner()
-    async def force(self, ctx):
-        await self.set_last_time(
-            self.last_checked - timedelta(seconds=REditorCog.CHECK_EVERY*100)
-        )
-        await ctx.message.add_reaction("✅")
-
-    @staticmethod
-    async def get_askreddit(subreddit):
-        reddit = asyncpraw.Reddit(
-            client_id=REDDIT_ID, client_secret=REDDIT_SECRET, user_agent=REDDIT_AGENT,
-            check_for_updates="False", comment_kind="t1", message_kind="t4", redditor_kind="t2",
-            submission_kind="t3", subreddit_kind="t5", trophy_kind="t6", oauth_url="https://oauth.reddit.com",
-            reddit_url="https://www.reddit.com", short_url="https://redd.it"
-        )
-        reddit.read_only = True
-
-        threads = []
-        async for submission in (await reddit.subreddit(subreddit)).hot(limit=20):
-            threads.append({
-                "id": submission.id,
-                "title": submission.title,
-                "score": submission.score
-            })
-        return threads
-
-    @tasks.loop(seconds=30)
-    async def daily_threads(self):
-        if datetime.now() < (self.last_checked + timedelta(seconds=REditorCog.CHECK_EVERY)):
-            return
-        await self.set_last_time(datetime.now())
-
-        await pgsql.reditor.remove_old_threads()
-
-        subs_to_check = ["askreddit", "askmen"]
-        for sub in subs_to_check:
-            await self.send_hot_threads(sub)
-
-    async def send_hot_threads(self, sub):
-        threads = await REditorCog.get_askreddit(sub)
-        debug_msg = f"Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
-        duplicates = await pgsql.reditor.get_existing_threads([t['id'] for t in threads])
-        debug_msg += f"Dupe threads: `{'`, `'.join(duplicates)}`\n"
-        threads = [t for t in threads if t["id"] not in duplicates][:10]
-        debug_msg += f"Final threads: `{'`, `'.join([t['id'] for t in threads])}`\n"
-        await util.logger.Logger.log(debug_msg, util.logger.Logger.DEBUG)
-        if len(threads) == 0:
-            return
-
-        message = ""
-        score_len = len(str(max([t['score'] for t in threads])))  # Get the digit number of the highest score
-        msg_template = "{}. `^ {:<" + str(score_len) + "}` {}\n"
-        for i in range(len(threads)):
-            t = threads[i]
-            message += msg_template.format(i+1, t['score'], t['title'])
-
-        embed = discord.Embed(
-            title="Threads of today",
-            description=message,
-            color=discord.colour.Colour.purple(),
-        ).set_footer(text=f"r/{sub}")
-
-        threads = [(threads[i]["id"], threads[i]["title"]) for i in range(len(threads))]
-        for g in self.bot.guilds:
-            category = discord.utils.get(g.categories, name="reditor")
-            if not category:
-                continue
-            await self.post_threads(category, embed, threads)
-
-    @staticmethod
-    async def post_threads(category, embed, threads):
-        thread_channel = discord.utils.get(category.text_channels, name="threads")
-        if not thread_channel:
-            return
-
-        message = await thread_channel.send(f"Today's threads:\n", embed=embed)
-        reactions = ["1️⃣", "2️⃣",  "3️⃣",  "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
-        for i in range(min(len(reactions), len(threads))):
-            r = reactions[i]
-            await message.add_reaction(r)
-        await message.add_reaction("✅")
-
-        threads = [threads[i] + (message.id, i) for i in range(len(threads))]
-        await pgsql.reditor.add_threads(threads)
-
     @commands.Cog.listener()
     async def on_raw_reaction_add(self, payload):
         await asyncio.gather(*[
-            self.check_for_thread_confirmation(payload),
-            self.check_for_video_deletion(payload),
+            self.check_thread_confirmation(payload),
+            self.check_video_deletion(payload),
         ])
 
-    async def check_for_video_deletion(self, payload):
+    async def check_video_deletion(self, payload):
         if str(payload.emoji) != "❌":
             return
 
@@ -202,7 +90,7 @@ class REditorCog(commands.Cog):
 
         await pgsql.reditor.discard_video(message_id=payload.message_id)
 
-    async def check_for_thread_confirmation(self, payload):
+    async def check_thread_confirmation(self, payload):
         """
         Listen for thread confirmation
         :return: bool: Whether the
@@ -258,6 +146,12 @@ class REditorCog(commands.Cog):
 
     @commands.Cog.listener()
     async def on_message(self, message):
+        await asyncio.gather(*[
+            self.check_add_video_meta(message),
+            self.check_scene_reaction_add(message),
+        ])
+
+    async def check_add_video_meta(self, message):
         if len(message.attachments) == 0 or \
                 message.reference is None or \
                 not self.is_thumbnail_channel(message.reference.guild_id, message.reference.channel_id):
@@ -274,6 +168,41 @@ class REditorCog(commands.Cog):
         if reference and reference.author.id == self.bot.user.id and not reference.edited_at:
             await reference.edit(content=reference.content[:39] + reference.content[41:-2])
         await message.add_reaction("✅")
+
+    async def check_scene_reaction_add(self, message):
+        if message.reference is None:
+            return
+        scene_data = await pgsql.reditor.get_scene_info(message.channel.id, message.reference.message_id)
+        if scene_data is None:
+            return
+        document_id, scene_id = scene_data
+
+        reactions = {
+            "\U0001f604": "joy",
+            "\U0001f914": "think",
+            "\U0001f621": "angry",
+            "\U0001f60f": "smug",
+            "\U0001F937": "shrug",
+        }
+        for rctn in reactions.keys():
+            await message.add_reaction(rctn)
+
+        try:
+            def check(payload: discord.RawReactionActionEvent):
+                return payload.message_id == message.id and \
+                    str(payload.emoji) in reactions.keys() and \
+                    payload.user_id == message.author.id
+
+            emoji_payload = await self.bot.wait_for("raw_reaction_add", timeout=10, check=check)
+            choice_emoji = str(emoji_payload.emoji)
+        except asyncio.TimeoutError:
+            choice_emoji = random.choice(list(reactions.keys()))
+
+        await message.clear_reactions()
+        await message.add_reaction(choice_emoji)
+        reaction = reactions[choice_emoji]
+
+        await self.add_reaction_to_scene(document_id, scene_id, reaction, message.content)
 
     @reditor.command(aliases=["ready"])
     async def available(self, ctx):
@@ -369,6 +298,36 @@ class REditorCog(commands.Cog):
         fout.close()
         return ret
 
+    @staticmethod
+    async def add_reaction_to_scene(document_id, scene_id, reaction, text):
+        """
+        TEMPORARY METHOD. Will be overridden by an API call to the REditor server.
+        """
+        reditor_saves_path = await pgsql.owner.get_config("rdt-saves-path")
+        script_path = os.path.join(reditor_saves_path, f"{document_id:05d}", "scenes", f"{scene_id:05d}", "script.txt")
+        if not os.path.exists(script_path):
+            return False
 
-def setup(bot):
-    bot.add_cog(REditorCog(bot))
+        file = open(script_path)
+        parts = []
+        while True:
+            parts.append("".join([file.readline() for _ in range(4)]))
+            if file.readline() == "":
+                break
+        file.close()
+
+        parts[-1] += "\n"
+        if "[reaction=" in parts[-1]:
+            parts.pop(-1)
+        parts.append(f"[reaction={reaction}]\n{text}\nmale-1-neural\n0.75")
+
+        script_new = "\n".join(parts)
+        file = open(script_path, "w")
+        file.write(script_new)
+        file.close()
+
+        return True
+
+
+async def setup(bot):
+    await bot.add_cog(REditorCog(bot))

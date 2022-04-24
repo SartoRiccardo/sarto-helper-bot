@@ -195,5 +195,5 @@ class ThumbnailCog(commands.Cog):
             os.remove(dest_path)
 
 
-def setup(bot):
-    bot.add_cog(ThumbnailCog(bot))
+async def setup(bot):
+    await bot.add_cog(ThumbnailCog(bot))

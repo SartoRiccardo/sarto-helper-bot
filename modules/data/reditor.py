@@ -7,7 +7,7 @@ postgres = modules.data.connection.postgres
 
 
 @postgres
-async def add_threads(conn, threads):
+async def add_threads(threads, conn=None):
     today = datetime.now()
     values = []
     for t in threads:
@@ -19,29 +19,29 @@ async def add_threads(conn, threads):
 
 
 @postgres
-async def get_exportable(conn):
+async def get_exportable(conn=None):
     return await conn.fetch("SELECT * FROM rdt_videos WHERE NOT exported AND thumbnail IS NOT NULL")
 
 
 @postgres
-async def get_uploadable(conn):
+async def get_uploadable(conn=None):
     return await conn.fetch("SELECT * FROM rdt_videos WHERE exported AND url IS NULL")
 
 
 @postgres
-async def choose_threads(conn, threads):
+async def choose_threads(threads, conn=None):
     await conn.executemany("INSERT INTO rdt_videos(thread, message) VALUES ($1, $2)", threads)
 
 
 @postgres
-async def get_existing_threads(conn, threads):
+async def get_existing_threads(threads, conn=None):
     ret = await conn.fetch("SELECT id FROM rdt_threads WHERE id = ANY($1)", threads)
     ret = [r["id"] for r in ret]
     return ret
 
 
 @postgres
-async def get_threads(conn, message, filter=None, only_id=False):
+async def get_threads(message, filter=None, only_id=False, conn=None):
     q = "SELECT * FROM rdt_threads WHERE message=$1"
     values = [message]
     if filter:
@@ -55,7 +55,7 @@ async def get_threads(conn, message, filter=None, only_id=False):
 
 
 @postgres
-async def remove_old_threads(conn):
+async def remove_old_threads(conn=None):
     await conn.execute("""
         DELETE FROM rdt_threads thr
         USING rdt_videos vid
@@ -71,13 +71,13 @@ async def remove_old_threads(conn):
 
 
 @postgres
-async def set_video_meta(conn, message_id, title, thumbnail_url):
+async def set_video_meta(message_id, title, thumbnail_url, conn=None):
     await conn.execute("UPDATE rdt_videos SET title=$1, thumbnail=$2 WHERE message=$3",
                        title, thumbnail_url, message_id)
 
 
 @postgres
-async def discard_video(conn, thread_id=None, message_id=None):
+async def discard_video(thread_id=None, message_id=None, conn=None):
     if message_id and not thread_id:
         results = await conn.fetch("SELECT thread FROM rdt_videos WHERE message=$1", message_id)
         if len(results) == 0:
@@ -96,3 +96,102 @@ async def discard_video(conn, thread_id=None, message_id=None):
         return True
 
     return False
+
+
+@postgres
+async def get_newly_created_videos(conn=None):
+    """
+    Gets created (but not exported) document IDs that don't have a thread open.
+    """
+    results = await conn.fetch("""
+    SELECT document_id
+    FROM rdt_videos
+    WHERE document_id IS NOT NULL
+      AND thread NOT IN (SELECT thread FROM rdt_create_channel)
+      AND NOT exported
+    """)
+    return [r["document_id"] for r in results]
+
+
+@postgres
+async def get_document_info(document_id, conn=None):
+    result = await conn.fetch("""
+        SELECT *
+        FROM rdt_videos
+        WHERE document_id=$1
+    """, document_id)
+    if len(result) == 0:
+        return None
+    return result[0]
+
+
+@postgres
+async def set_video_thread(thread_id, discord_thread_id, conn=None):
+    await conn.execute("""
+    INSERT INTO rdt_create_channel (thread, channel_id) VALUES ($1, $2)
+    """, thread_id, discord_thread_id)
+
+
+@postgres
+async def set_video_scenes(channel_id, messages, scene_ids, conn=None):
+    values = []
+    for i in range(min(len(messages), len(scene_ids))):
+        values.append((channel_id, messages[i], scene_ids[i]))
+    await conn.executemany("""
+    INSERT INTO rdt_create_messages (channel_id, message, scene_id) VALUES ($1, $2, $3)
+    """, values)
+
+
+@postgres
+async def get_scene_info(thread_id: int, message_id: int, conn=None):
+    """Gets the ID of a scene that is bound to a message in a thread."""
+    result = await conn.fetch("""
+        SELECT vid.document_id, msg.scene_id
+        FROM rdt_create_messages AS msg
+            JOIN rdt_create_channel AS chnl
+                ON chnl.channel_id = msg.channel_id
+            JOIN rdt_videos AS vid
+                ON vid.thread = chnl.thread
+        WHERE msg.channel_id=$1 AND msg.message=$2
+    """, thread_id, message_id)
+    if len(result) == 0:
+        return None
+    return [result[0]["document_id"], result[0]["scene_id"]]
+
+
+@postgres
+async def get_newly_exported_documents(conn=None):
+    result = await conn.fetch("""
+        SELECT v.document_id
+        FROM rdt_create_channel AS cc
+            JOIN rdt_videos AS v
+                ON cc.thread = v.thread
+        WHERE v.exported
+    """)
+    return [r["document_id"] for r in result]
+
+
+@postgres
+async def get_thread_id(document_id, conn=None):
+    result = await conn.fetch("""
+        SELECT channel_id
+        FROM rdt_create_channel AS cc
+            JOIN rdt_videos AS v
+                ON cc.thread = v.thread
+        WHERE v.document_id = $1
+    """, document_id)
+    if len(result) == 0:
+        return None
+    return result[0]["channel_id"]
+
+
+@postgres
+async def delete_thread(thread_id, conn=None):
+    await conn.execute("""
+        DELETE FROM rdt_create_messages
+        WHERE channel_id=$1
+    """, thread_id)
+    await conn.execute("""
+        DELETE FROM rdt_create_channel
+        WHERE channel_id=$1
+    """, thread_id)

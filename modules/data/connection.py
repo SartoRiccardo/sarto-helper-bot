@@ -19,7 +19,7 @@ def postgres(func):
     async def inner(*args, **kwargs):
         if connection is None:
             return
-        return await func(connection, *args, **kwargs)
+        return await func(*args, **kwargs, conn=connection)
     return inner
 
 

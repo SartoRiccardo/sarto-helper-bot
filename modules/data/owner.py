@@ -3,13 +3,13 @@ postgres = modules.data.connection.postgres
 
 
 @postgres
-async def set_config(conn, key, value):
+async def set_config(key, value, conn=None):
     await conn.execute("DELETE FROM config WHERE name = $1", key)
     await conn.execute("INSERT INTO config VALUES ($1, $2)", key, value)
 
 
 @postgres
-async def get_config(conn, key):
+async def get_config(key, conn=None):
     if type(key) == list:
         return [(await get_config(k)) for k in key]
 
@@ -21,10 +21,10 @@ async def get_config(conn, key):
 
 
 @postgres
-async def del_config(conn, key):
+async def del_config(key, conn=None):
     await conn.execute("DELETE FROM config WHERE name = $1", key)
 
 
 @postgres
-async def get_all_config_keys(conn):
+async def get_all_config_keys(conn=None):
     return await conn.fetch("SELECT name FROM config")

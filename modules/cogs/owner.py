@@ -28,7 +28,7 @@ class Owner(commands.Cog):
         except:
             pass
 
-    @commands.group()
+    @commands.group(aliases=["cogs"])
     @commands.is_owner()
     async def cog(self, ctx):
         if ctx.invoked_subcommand is None:
@@ -38,7 +38,7 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def load(self, ctx, name):
         try:
-            self.bot.load_extension(f"modules.cogs.{name}")
+            await self.bot.load_extension(f"modules.cogs.{name}")
             await ctx.message.add_reaction(SUCCESS_REACTION)
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))
@@ -48,7 +48,7 @@ class Owner(commands.Cog):
     async def unload(self, ctx, name):
         try:
             if f"modules.cogs.{name}" != __name__:
-                self.bot.unload_extension(f"modules.cogs.{name}")
+                await self.bot.unload_extension(f"modules.cogs.{name}")
                 await ctx.message.add_reaction(SUCCESS_REACTION)
             else:
                 await ctx.send(
@@ -61,8 +61,8 @@ class Owner(commands.Cog):
     @commands.is_owner()
     async def reload(self, ctx, name):
         try:
-            self.bot.unload_extension(f"modules.cogs.{name}")
-            self.bot.load_extension(f"modules.cogs.{name}")
+            await self.bot.unload_extension(f"modules.cogs.{name}")
+            await self.bot.load_extension(f"modules.cogs.{name}")
             await ctx.message.add_reaction(SUCCESS_REACTION)
         except Exception as e:
             await ctx.send(self.ERROR_MESSAGE.format(type(e).__name__, e))
@@ -166,5 +166,5 @@ class Owner(commands.Cog):
         await ctx.send(f"```\n{traceback_str}\n```")
 
 
-def setup(bot):
-    bot.add_cog(Owner(bot))
+async def setup(bot):
+    await bot.add_cog(Owner(bot))
