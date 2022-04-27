@@ -220,7 +220,9 @@ class REditorTasksCog(commands.Cog):
     @commands.is_owner()
     @commands.command()
     async def rmthreads(self, ctx):
-        for thread in ctx.channel.threads:
+        threads = ctx.channel.threads
+        threads += [thr async for thr in ctx.channel.archived_threads()]
+        for thread in threads:
             await thread.delete()
 
 
