@@ -44,3 +44,5 @@ class Logger:
         
         async with aiohttp.ClientSession() as session:
             await session.post(webhook_url, json=embed)
+        if not session.closed:
+            await session.close()
