@@ -160,6 +160,7 @@ class REditorTasksCog(commands.Cog):
         scene_ids = []
         for scn in scenes:
             scene_message = await video_thread.send(file=discord.File(scn["media"]))
+            await asyncio.sleep(1)
             message_ids.append(scene_message.id)
             scene_ids.append(scn["id"])
         await modules.data.reditor.set_video_scenes(video_thread.id, message_ids, scene_ids)
@@ -181,7 +182,7 @@ class REditorTasksCog(commands.Cog):
     @staticmethod
     async def get_scenes(document_id: int):
         """
-        TEMPORARY METHOD. Will be overruled by an API call to the REditor server.
+        TEMPORARY METHOD. Will be overruled by an API call to the REditor server. Sorted by ID.
         """
         reditor_saves_path = await pgsql.owner.get_config("rdt_saves-path")
         scenes = []
@@ -200,7 +201,7 @@ class REditorTasksCog(commands.Cog):
                 continue
             scenes.append({"id": int(directory[-5:]), "media": f"{scenes_path}/{directory}/{media_file_name}"})
 
-        return scenes
+        return scenes.sort(key=lambda s: s["id"])
 
     @tasks.loop(seconds=30)
     async def delete_exported_threads(self):
