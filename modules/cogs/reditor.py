@@ -303,7 +303,7 @@ class REditorCog(commands.Cog):
         """
         TEMPORARY METHOD. Will be overridden by an API call to the REditor server.
         """
-        reditor_saves_path = await pgsql.owner.get_config("rdt-saves-path")
+        reditor_saves_path = await pgsql.owner.get_config("rdt_saves-path")
         script_path = os.path.join(reditor_saves_path, f"{document_id:05d}", "scenes", f"{scene_id:05d}", "script.txt")
         if not os.path.exists(script_path):
             return False

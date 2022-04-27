@@ -183,7 +183,7 @@ class REditorTasksCog(commands.Cog):
         """
         TEMPORARY METHOD. Will be overruled by an API call to the REditor server.
         """
-        reditor_saves_path = await pgsql.owner.get_config("rdt-saves-path")
+        reditor_saves_path = await pgsql.owner.get_config("rdt_saves-path")
         scenes = []
         scenes_path = f"{reditor_saves_path}/{document_id:05d}/scenes"
         if not os.path.exists(scenes_path):
