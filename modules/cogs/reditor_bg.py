@@ -27,7 +27,7 @@ class REditorTasksCog(commands.Cog):
 
     async def cog_load(self):
         self.last_checked = await self.get_last_time()
-        # self.daily_threads.start()
+        self.daily_threads.start()
         self.update_video_status.start()
         self.delete_exported_threads.start()
 
