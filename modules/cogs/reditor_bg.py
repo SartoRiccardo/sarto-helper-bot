@@ -151,7 +151,11 @@ class REditorTasksCog(commands.Cog):
         video = await pgsql.reditor.get_document_info(document_id)
         video_name = video["title"] if video["title"] else video["thread"]
         message = await thumbnail_channel.fetch_message(video["message"])
-        video_thread = await message.create_thread(name=video_name)
+        try:
+            video_thread = await message.create_thread(name=video_name)
+        except discord.errors.HTTPException:
+            await util.logger.Logger.log(f"Thread for {video_name} already created.", util.logger.Logger.DEBUG)
+            return
         await video_thread.add_user(thumbnail_channel.guild.owner)
         await pgsql.reditor.set_video_thread(video["thread"], video_thread.id)
 
