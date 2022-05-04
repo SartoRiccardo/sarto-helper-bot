@@ -160,10 +160,13 @@ class Owner(commands.Cog):
         async for ln in fin:
             buffer[i] = ln
             i = (i+1) % len(buffer)
-        fin.close()
+        await fin.close()
 
         traceback_str = "".join(buffer[i:] + buffer[0:i])
-        await ctx.send(f"```\n{traceback_str}\n```")
+        if len(traceback_str) > 0:
+            await ctx.send(f"```\n{traceback_str}\n```")
+        else:
+            await ctx.message.add_reaction("❌")
 
 
 async def setup(bot):
