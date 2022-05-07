@@ -111,10 +111,7 @@ class REditorCog(commands.Cog):
         if not thumbnail_channel or not thread_channel or thread_channel.id != payload.channel_id:
             return
 
-        message = discord.utils.get(
-            await thread_channel.history(limit=14).flatten(),
-            id=payload.message_id
-        )
+        message = await thread_channel.fetch_message(payload.message_id)
         if not message:
             return
 
@@ -163,8 +160,7 @@ class REditorCog(commands.Cog):
 
         reference = message.reference.cached_message
         if not reference:
-            history = await message.channel.history(limit=100).flatten()
-            reference = discord.utils.get(history, id=reply_id)
+            reference = await message.channel.fetch_message(reply_id)
         if reference and reference.author.id == self.bot.user.id and not reference.edited_at:
             await reference.edit(content=reference.content[:39] + reference.content[41:-2])
         await message.add_reaction("✅")
