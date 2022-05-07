@@ -215,8 +215,8 @@ class REditorTasksCog(commands.Cog):
 
     async def delete_video_thread(self, document_id):
         thread_id = await pgsql.reditor.get_thread_id(document_id)
-        for g in self.bot.guilds:
-            thread = discord.utils.get(g.threads, id=thread_id)
+        for guild in self.bot.guilds:
+            thread = thread = await guild.fetch_channel(thread_id)
             if not thread:
                 continue
             await pgsql.reditor.delete_thread(thread_id)
