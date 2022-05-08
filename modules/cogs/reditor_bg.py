@@ -1,5 +1,7 @@
 import os
 import discord
+import random
+import aiofiles
 import asyncio
 import asyncpraw
 import importlib
@@ -85,11 +87,12 @@ class REditorTasksCog(commands.Cog):
 
         await pgsql.reditor.remove_old_threads()
 
-        subs_to_check = ["askreddit", "askmen"]
+        subs_to_check = await self.get_subreddits_to_check()
+        color = random.randint(0, 16777215)
         for sub in subs_to_check:
-            await self.send_hot_threads(sub)
+            await self.send_hot_threads(sub, color=color)
 
-    async def send_hot_threads(self, sub):
+    async def send_hot_threads(self, sub, color=None):
         threads = await REditorTasksCog.get_askreddit(sub)
         debug_msg = f"Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
         duplicates = await pgsql.reditor.get_existing_threads([t['id'] for t in threads])
@@ -110,7 +113,7 @@ class REditorTasksCog(commands.Cog):
         embed = discord.Embed(
             title="Threads of today",
             description=message,
-            color=discord.colour.Colour.purple(),
+            color=color if color else discord.Colour.purple(),
         ).set_footer(text=f"r/{sub}")
 
         threads = [(threads[i]["id"], threads[i]["title"]) for i in range(len(threads))]
@@ -231,6 +234,23 @@ class REditorTasksCog(commands.Cog):
         threads += [thr async for thr in ctx.channel.archived_threads()]
         for thread in threads:
             await thread.delete()
+
+    @staticmethod
+    async def get_subreddits_to_check():
+        if not os.path.exists("subreddits.txt"):
+            file = await aiofiles.open("subreddits.txt", "w")
+            await file.write("askreddit")
+            await file.close()
+            return ["askreddit"]
+
+        fin = await aiofiles.open("subreddits.txt")
+        subs = []
+        async for ln in fin:
+            ln = ln.strip()
+            if len(ln) > 0:
+                subs.append(ln)
+        await fin.close()
+        return subs
 
 
 async def setup(bot):

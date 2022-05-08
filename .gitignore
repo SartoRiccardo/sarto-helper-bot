@@ -132,3 +132,6 @@ tmp
 .DS_Store
 modules/cogs/test.py
 nohup.out
+subreddits.txt
+.gitignore
+modules/server
