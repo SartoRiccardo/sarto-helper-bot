@@ -205,7 +205,8 @@ class REditorTasksCog(commands.Cog):
                 continue
             scenes.append({"id": int(directory[-5:]), "media": f"{scenes_path}/{directory}/{media_file_name}"})
 
-        return scenes.sort(key=lambda s: s["id"])
+        scenes.sort(key=lambda s: s["id"])
+        return scenes
 
     @tasks.loop(seconds=30)
     async def delete_exported_threads(self):
