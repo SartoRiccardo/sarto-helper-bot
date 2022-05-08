@@ -93,7 +93,6 @@ class REditorCog(commands.Cog):
     async def check_thread_confirmation(self, payload):
         """
         Listen for thread confirmation
-        :return: bool: Whether the
         """
         if str(payload.emoji) != "✅":
             return
@@ -155,8 +154,11 @@ class REditorCog(commands.Cog):
             return
         reply_id = message.reference.message_id
         title = message.content
+        is_short = "\N{SHORTS}" in title
+        title = title.replace("\N{SHORTS}", "")
+
         thumbnail = message.attachments[0].url
-        await pgsql.reditor.set_video_meta(reply_id, title, thumbnail)
+        await pgsql.reditor.set_video_meta(reply_id, title, thumbnail, is_short=is_short)
 
         reference = message.reference.cached_message
         if not reference:

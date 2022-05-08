@@ -71,9 +71,9 @@ async def remove_old_threads(conn=None):
 
 
 @postgres
-async def set_video_meta(message_id, title, thumbnail_url, conn=None):
-    await conn.execute("UPDATE rdt_videos SET title=$1, thumbnail=$2 WHERE message=$3",
-                       title, thumbnail_url, message_id)
+async def set_video_meta(message_id, title, thumbnail_url, is_short=False, conn=None):
+    await conn.execute("UPDATE rdt_videos SET title=$1, thumbnail=$2, is_short=$4 WHERE message=$3",
+                       title, thumbnail_url, message_id, is_short)
 
 
 @postgres

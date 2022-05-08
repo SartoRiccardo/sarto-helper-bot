@@ -162,6 +162,7 @@ class REditorTasksCog(commands.Cog):
         scenes = await self.get_scenes(video["document_id"])
         message_ids = []
         scene_ids = []
+        await video_thread.send(f"Number of scenes: **{len(scenes)}**")
         for scn in scenes:
             scene_message = await video_thread.send(file=discord.File(scn["media"]))
             await asyncio.sleep(1)
