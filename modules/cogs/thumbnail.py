@@ -34,7 +34,7 @@ class ThumbnailCog(commands.Cog):
             if not ctx.message.reference:
                 # Use last image sent in the channel by a non-bot user
                 thumb_img_url = None
-                history = await ctx.channel.history(limit=100).flatten()
+                history = [msg async for msg in ctx.channel.history(limit=100)]
                 for message in history:
                     if not message.author.bot and len(message.attachments) > 0:
                         return message.attachments[0].url
@@ -68,10 +68,10 @@ class ThumbnailCog(commands.Cog):
             await ctx.send("You must attach an image!")
             return
 
-        backdrop = None
+        backdrop = util.image.BLACK
         if "-b" in thumb_text:
             thumb_text = thumb_text.replace("-b", "")
-            backdrop = util.image.BLACK
+            backdrop = None
 
         watermark = False
         if "-w" in thumb_text:
