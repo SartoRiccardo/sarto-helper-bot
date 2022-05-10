@@ -6,6 +6,7 @@ BIN_PATH = os.path.abspath(os.path.dirname(__file__)) + "/../../bin"
 FONT = ImageFont.truetype(BIN_PATH + "/thumbnail-font-bold.ttf", 100)
 FONT_SHORTS = ImageFont.truetype(BIN_PATH + "/thumbnail-font-bold.ttf", 70)
 WATERMARK_PATH = BIN_PATH + "/watermark.png"
+WATERMARK_PATH_SHORTS = BIN_PATH + "/watermark-shorts.png"
 ARROW_PATH = BIN_PATH + "/arrow.png"
 CIRCLE_PATH = BIN_PATH + "/circle.png"
 
@@ -23,9 +24,6 @@ def make_thumbnail(text, image_path, save_path, max_chars_per_line=20, put_water
     base_canvas = ImageDraw.Draw(base)
 
     text = split_text_in_lines(text, max_chars_per_line)
-
-    watermark = Image.open(WATERMARK_PATH)
-    wm_w, wm_h = watermark.size
 
     background = Image.open(image_path)
     width, height = background.size
@@ -48,6 +46,8 @@ def make_thumbnail(text, image_path, save_path, max_chars_per_line=20, put_water
                 text.upper(), fill=FONT_COLOR, font=FONT, anchor="mm", align="center",
                 stroke_fill=STROKE_COLOR, stroke_width=STROKE_WIDTH)
     if put_watermark:
+        watermark = Image.open(WATERMARK_PATH)
+        wm_w, wm_h = watermark.size
         base.paste(watermark, (0, THUMB_SIZE[1]-wm_h), watermark)
     base.save(save_path)
     base.close()
@@ -143,8 +143,13 @@ def make_shorts_thumbnail(text, reaction, save_path):
 
     text_canvas = ImageDraw.Draw(base)
     text = split_text_in_lines(text, 20)
-    text_canvas.multiline_text((10, 50), text.upper(), fill=FONT_COLOR, font=FONT_SHORTS,
-                               align="center", stroke_fill=STROKE_COLOR, stroke_width=STROKE_WIDTH)
+    text_canvas.multiline_text((400, 200), text.upper(), fill=FONT_COLOR, font=FONT_SHORTS,
+                               align="center", stroke_fill=STROKE_COLOR, stroke_width=STROKE_WIDTH,
+                               anchor="mm")
+
+    watermark = Image.open(WATERMARK_PATH_SHORTS)
+    wm_w, wm_h = watermark.size
+    base.paste(watermark, (0, THUMB_SIZE[1]-wm_h), watermark)
 
     base.save(save_path)
 
