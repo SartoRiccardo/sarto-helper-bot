@@ -184,6 +184,26 @@ class ThumbnailCog(commands.Cog):
         util.image.add_arrow(source_path, dest_path, **arrow_config)
         await self.send_and_rm(source_path, dest_path, ctx)
 
+    @thumbnail.command(aliases=["shorts"])
+    async def short(self, ctx, *, args):
+        args_separated = args.split(" ")
+        text = " ".join(args_separated[:-1])
+        possible_reactions = ["joy", "angry", "shrug", "smug", "think"]
+        reaction = "joy"
+        if args_separated[-1] in possible_reactions:
+            reaction = args_separated[-1]
+        else:
+            text += f" {args_separated[-1]}"
+
+        tmp_path = os.path.abspath(os.path.dirname(__file__)) + "/../../tmp"
+        if not os.path.exists(tmp_path):
+            os.mkdir(tmp_path)
+
+        rand_id = randint(0, 1000000)
+        dest_path = f"{tmp_path}/thumbnail-{rand_id}.png"
+        util.image.make_shorts_thumbnail(text, reaction, dest_path)
+        await self.send_and_rm("", dest_path, ctx)
+
     @staticmethod
     async def send_and_rm(source_path, dest_path, ctx):
         fp = open(dest_path, "rb")

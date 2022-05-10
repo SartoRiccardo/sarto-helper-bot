@@ -4,6 +4,7 @@ import os
 
 BIN_PATH = os.path.abspath(os.path.dirname(__file__)) + "/../../bin"
 FONT = ImageFont.truetype(BIN_PATH + "/thumbnail-font-bold.ttf", 100)
+FONT_SHORTS = ImageFont.truetype(BIN_PATH + "/thumbnail-font-bold.ttf", 70)
 WATERMARK_PATH = BIN_PATH + "/watermark.png"
 ARROW_PATH = BIN_PATH + "/arrow.png"
 CIRCLE_PATH = BIN_PATH + "/circle.png"
@@ -21,14 +22,7 @@ def make_thumbnail(text, image_path, save_path, max_chars_per_line=20, put_water
     base = Image.new("RGBA", THUMB_SIZE, color=backdrop if backdrop else BLACK)
     base_canvas = ImageDraw.Draw(base)
 
-    words = text.split(" ")
-    text_multi = ""
-    for w in words:
-        current_line = text_multi.split("\n")[-1]
-        if len(current_line)+len(w)+1 > max_chars_per_line:
-            text_multi += "\n"
-        text_multi += " " + w
-    text = text_multi
+    text = split_text_in_lines(text, max_chars_per_line)
 
     watermark = Image.open(WATERMARK_PATH)
     wm_w, wm_h = watermark.size
@@ -135,6 +129,26 @@ def set_to_thumbnail_size(image_path):
     return base
 
 
+def make_shorts_thumbnail(text, reaction, save_path):
+    base = Image.open("bin/shorts-thmb-background.png")
+
+    reaction_path = f"bin/reactions/{reaction}.png"
+    if os.path.exists(reaction_path):
+        reaction_img = Image.open(reaction_path)
+        width, height = reaction_img.size
+        new_height = int(THUMB_SIZE[1]*0.75)
+        new_width = int(width * new_height/height)
+        reaction_img = reaction_img.resize((new_width, new_height))
+        base.paste(reaction_img, (THUMB_SIZE[0]-new_width, THUMB_SIZE[1]-new_height), reaction_img)
+
+    text_canvas = ImageDraw.Draw(base)
+    text = split_text_in_lines(text, 20)
+    text_canvas.multiline_text((10, 50), text.upper(), fill=FONT_COLOR, font=FONT_SHORTS,
+                               align="center", stroke_fill=STROKE_COLOR, stroke_width=STROKE_WIDTH)
+
+    base.save(save_path)
+
+
 # YT thumbnails can't be > 2mb
 def reduce_size(path):
     while os.stat(path).st_size > 2000000:
@@ -143,3 +157,14 @@ def reduce_size(path):
         thumb = thumb.resize((int(width*0.9), int(height*0.9)), Image.ANTIALIAS)
         thumb.save(path)
         thumb.close()
+
+
+def split_text_in_lines(text, max_chars):
+    words = text.split(" ")
+    text_multi = ""
+    for w in words:
+        current_line = text_multi.split("\n")[-1]
+        if len(current_line)+len(w)+1 > max_chars:
+            text_multi += "\n"
+        text_multi += " " + w
+    return text_multi
