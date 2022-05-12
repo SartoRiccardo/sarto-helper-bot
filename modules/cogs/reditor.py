@@ -203,24 +203,26 @@ class REditorCog(commands.Cog):
         await self.add_reaction_to_scene(document_id, scene_id, reaction, message.content)
 
     @reditor.command(aliases=["ready"])
-    async def available(self, ctx):
-        videos_ready = await pgsql.reditor.get_uploadable()
-        videos_exportable = await pgsql.reditor.get_exportable()
+    async def available(self, ctx, shorts=None):
+        type_str = "short" if shorts else "video"
+
+        videos_ready = await pgsql.reditor.get_uploadable(shorts=(shorts is not None))
+        videos_exportable = await pgsql.reditor.get_exportable(shorts=(shorts is not None))
         if len(videos_ready) == 0:
-            message = "There are no videos ready!"
+            message = f"There are no {type_str}s ready!"
         else:
-            message = f"There are {len(videos_ready)}{'+' if len(videos_ready) > 5 else ''} videos ready:"
+            message = f"There are {len(videos_ready)}{'+' if len(videos_ready) > 5 else ''} {type_str}s ready:"
             n = 1
             for v in videos_ready:
                 if not v['title']:
                     server = ctx.guild.id
                     category = discord.utils.get(ctx.guild.categories, name="reditor")
                     if not category:
-                        message += f"\n{n}. *⚠️ Unknown video*"
+                        message += f"\n{n}. *⚠️ Unknown {type_str}*"
                         continue
                     thumbnails = discord.utils.get(category.text_channels, name="thumbnails")
                     if not thumbnails:
-                        message += f"\n{n}. *⚠️ Unknown video*"
+                        message += f"\n{n}. *⚠️ Unknown {type_str}*"
                         continue
                     title = f"⚠️ [Unset video](https://discord.com/channels/{server}/{thumbnails.id}/{v['message']})"
                 else:
@@ -233,9 +235,9 @@ class REditorCog(commands.Cog):
                 message += "\n..."
 
         if len(videos_exportable) == 0:
-            message += "\n\nThere are no videos exportable! A random one will be picked."
+            message += f"\n\nThere are no {type_str}s exportable! A random one will be picked."
         else:
-            message += f"\n\nThere are **{len(videos_exportable)}** videos that can be exported."
+            message += f"\n\nThere are **{len(videos_exportable)}** {type_str}s that can be exported."
         await ctx.send(embed=discord.Embed(
             title="Videos Ready",
             description=message,

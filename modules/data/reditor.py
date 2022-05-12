@@ -19,13 +19,25 @@ async def add_threads(threads, conn=None):
 
 
 @postgres
-async def get_exportable(conn=None):
-    return await conn.fetch("SELECT * FROM rdt_videos WHERE NOT exported AND thumbnail IS NOT NULL")
+async def get_exportable(shorts=False, conn=None):
+    return await conn.fetch(f"""
+        SELECT *
+        FROM rdt_videos
+        WHERE NOT exported
+          AND thumbnail IS NOT NULL
+          AND {"" if shorts else "NOT"} is_short
+    """)
 
 
 @postgres
-async def get_uploadable(conn=None):
-    return await conn.fetch("SELECT * FROM rdt_videos WHERE exported AND url IS NULL")
+async def get_uploadable(shorts=False, conn=None):
+    return await conn.fetch(f"""
+        SELECT *
+        FROM rdt_videos
+        WHERE exported
+          AND url IS NULL
+          AND {"" if shorts else "NOT"} is_short
+    """)
 
 
 @postgres
