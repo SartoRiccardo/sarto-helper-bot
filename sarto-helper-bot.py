@@ -20,7 +20,7 @@ async def main():
         bot.remove_command("help")
         await bot.load_extension("modules.cogs.owner")
 
-        cogs = ["feeds", "edopro", "reditor", "reditor_bg", "thumbnail"]
+        cogs = ["feeds", "edopro", "reditor", "reditor_bg", "thumbnail", "utility"]
         for cog in cogs:
             try:
                 await bot.load_extension(f"modules.cogs.{cog}")
