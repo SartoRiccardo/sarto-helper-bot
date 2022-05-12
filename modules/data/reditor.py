@@ -119,6 +119,7 @@ async def get_document_info(document_id, conn=None):
         SELECT *
         FROM rdt_videos
         WHERE document_id=$1
+          AND NOT exported
     """, document_id)
     if len(result) == 0:
         return None
