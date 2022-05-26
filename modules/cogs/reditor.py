@@ -120,7 +120,7 @@ class REditorCog(commands.Cog):
             if r.count > 1:
                 chosen_threads.append(i)
         await util.logger.Logger.log(f"Chosen indexes: {chosen_threads}", util.logger.Logger.DEBUG)
-        await message.clear_reactions()
+        await message.delete()
 
         threads = await pgsql.reditor.get_threads(payload.message_id, filter=chosen_threads)
         messages = []

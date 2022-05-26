@@ -32,6 +32,7 @@ class REditorTasksCog(commands.Cog):
         self.daily_threads.start()
         self.update_video_status.start()
         self.delete_exported_threads.start()
+        self.upload_tiktoks.start()
 
     async def cog_unload(self):
         importlib.reload(modules.data.reditor)
@@ -43,6 +44,7 @@ class REditorTasksCog(commands.Cog):
         self.daily_threads.stop()
         self.update_video_status.stop()
         self.delete_exported_threads.stop()
+        self.upload_tiktoks.stop()
 
     @staticmethod
     async def get_last_time():
@@ -251,6 +253,42 @@ class REditorTasksCog(commands.Cog):
                 subs.append(ln)
         await fin.close()
         return subs
+
+    @tasks.loop(seconds=30)
+    async def upload_tiktoks(self):
+        reditor_path = await pgsql.owner.get_config("rdt_reditor-server-path")
+        if reditor_path is None or not os.path.exists(reditor_path):
+            return
+
+        tiktoks_path = os.path.join(reditor_path, "exports", "tiktoks")
+        if not os.path.exists(tiktoks_path):
+            return
+
+        tiktok_channel = None
+        exports = os.listdir(tiktoks_path)
+        for path in exports:
+            video_path = os.path.join(tiktoks_path, path)
+            if os.path.exists(f"{video_path}/POSTED"):
+                continue
+
+            video_id = path.split("-")[0]
+            video_url = f"http://51.158.66.81/tiktok.php?video={video_id}"
+            video_title = (await pgsql.reditor.get_video_info(video_id))["title"]
+            if tiktok_channel is None:
+                tiktok_channel = self.get_tiktok_channel()
+                if tiktok_channel is None:
+                    return
+            await tiktok_channel.send(f"{video_title}\n{video_url}")
+            open(f"{video_path}/POSTED", "w").close()
+
+    def get_tiktok_channel(self) -> discord.TextChannel:
+        for g in self.bot.guilds:
+            category = discord.utils.get(g.categories, name="reditor")
+            if not category:
+                continue
+            tiktok_channel = discord.utils.get(category.text_channels, name="tiktoks")
+            if tiktok_channel:
+                return tiktok_channel
 
 
 async def setup(bot):

@@ -208,3 +208,13 @@ async def delete_thread(thread_id, conn=None):
         DELETE FROM rdt_create_channel
         WHERE channel_id=$1
     """, thread_id)
+
+
+@postgres
+async def get_video_info(thread, conn=None):
+    results = conn.fetch("""
+        SELECT * FROM rdt_videos WHERE thread=$1
+    """, thread)
+    if len(results) == 0:
+        return None
+    return results[0]
