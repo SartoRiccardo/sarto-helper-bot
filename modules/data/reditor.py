@@ -212,7 +212,7 @@ async def delete_thread(thread_id, conn=None):
 
 @postgres
 async def get_video_info(thread, conn=None):
-    results = conn.fetch("""
+    results = await conn.fetch("""
         SELECT * FROM rdt_videos WHERE thread=$1
     """, thread)
     if len(results) == 0:
