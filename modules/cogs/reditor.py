@@ -11,7 +11,7 @@ import modules.data
 import modules.data.owner
 import modules.data.reditor
 import modules.util
-from modules.embeds.help import REditorHelpEmbed
+from typing import Optional, Literal
 pgsql = modules.data
 util = modules.util
 
@@ -32,28 +32,28 @@ class REditorCog(commands.Cog):
         importlib.reload(util)
         importlib.reload(pgsql)
 
-    @commands.group(invoke_without_command=True)
-    async def reditor(self, ctx, *args):
-        if ctx.invoked_subcommand is None and len(args) == 0:
-            await ctx.send(embed=REditorHelpEmbed())
+    reditor = discord.app_commands.Group(name="reditor",
+                                         description="Commands for REditor management.")
 
-    @reditor.command()
-    @commands.is_owner()
-    async def status(self, ctx):
+    @reditor.command(name="status", description="Check if the server is online!")
+    @modules.util.discordutils.owner_only()
+    async def status(self, interaction: discord.Interaction):
         out = subprocess.check_output('ps -aux | grep reditor-srv.py', shell=True)
-        if len(out.decode().split("\n")) == 4:
-            await ctx.message.add_reaction("✅")
-        else:
-            await ctx.message.add_reaction("❌")
+        is_running = len(out.decode().split("\n")) == 4
+        await interaction.response.send_message(
+            content=f"The process is{'' if is_running else ' not'} running!",
+            ephemeral=True,
+        )
 
-    @reditor.command()
-    async def setup(self, ctx):
+    @reditor.command(name="setup", description="Create a brand new REditor category")
+    @modules.util.discordutils.owner_only()
+    async def setup(self, interaction: discord.Interaction):
         """
         Create the category "reditor";
         Create the channels "#log", "#threads", and "#thumbnails";
         Create the webhook "REditor Logger".
         """
-        category = await ctx.guild.create_category("reditor")
+        category = await interaction.guild.create_category("reditor")
 
         log_channel = await category.create_text_channel("log")
         webhook = await log_channel.create_webhook(name="REditor Logger")
@@ -63,6 +63,11 @@ class REditorCog(commands.Cog):
             [category.create_text_channel(c) for c in channels] +
             [pgsql.owner.set_config("rdt_logger", webhook.url)],
             return_when=asyncio.ALL_COMPLETED
+        )
+
+        await interaction.response.send_message(
+            content=f"All done! {SUCCESS_REACTION}",
+            ephemeral=True
         )
 
     @commands.Cog.listener()
@@ -202,12 +207,14 @@ class REditorCog(commands.Cog):
 
         await self.add_reaction_to_scene(document_id, scene_id, reaction, message.content)
 
-    @reditor.command(aliases=["ready"])
-    async def available(self, ctx, shorts=None):
-        type_str = "short" if shorts else "video"
-
-        videos_ready = await pgsql.reditor.get_uploadable(shorts=(shorts is not None))
-        videos_exportable = await pgsql.reditor.get_exportable(shorts=(shorts is not None))
+    @reditor.command(name="available", description="Shows the videos available to export")
+    @discord.app_commands.rename(type_str="video_type")
+    @discord.app_commands.describe(type_str="The video type to show")
+    async def available(self,
+                        interaction: discord.Interaction,
+                        type_str: Optional[Literal["short", "video"]] = "video"):
+        videos_ready = await pgsql.reditor.get_uploadable(shorts=(type_str == "short"))
+        videos_exportable = await pgsql.reditor.get_exportable(shorts=(type_str == "short"))
         if len(videos_ready) == 0:
             message = f"There are no {type_str}s ready!"
         else:
@@ -215,8 +222,8 @@ class REditorCog(commands.Cog):
             n = 1
             for v in videos_ready:
                 if not v['title']:
-                    server = ctx.guild.id
-                    category = discord.utils.get(ctx.guild.categories, name="reditor")
+                    server = interaction.guild.id
+                    category = discord.utils.get(interaction.guild.categories, name="reditor")
                     if not category:
                         message += f"\n{n}. *⚠️ Unknown {type_str}*"
                         continue
@@ -238,36 +245,37 @@ class REditorCog(commands.Cog):
             message += f"\n\nThere are no {type_str}s exportable! A random one will be picked."
         else:
             message += f"\n\nThere are **{len(videos_exportable)}** {type_str}s that can be exported."
-        await ctx.send(embed=discord.Embed(
-            title="Videos Ready",
-            description=message,
-            color=discord.colour.Colour.purple()
-        ))
+        await interaction.response.send_message(
+            embed=discord.Embed(
+                title="Videos Ready",
+                description=message,
+                color=discord.colour.Colour.purple()
+            ),
+            ephemeral=True,
+        )
 
-    @reditor.command()
-    async def logging(self, ctx, level):
-        positive = ["on", "y", "yes", "true", "t"]
-        negative = ["off", "n", "no", "false", "f"]
-        if level.lower() not in positive+negative:
-            await ctx.send("Usage: `,reditor logging (on|off)`")
-            return
-
-        if level.lower() in positive:
+    @reditor.command(name="logging", description="Set the logging status")
+    @discord.app_commands.describe(active="The new logging status.")
+    @modules.util.discordutils.owner_only()
+    async def logging(self, interaction: discord.Interaction, active: bool):
+        if active:
             await pgsql.owner.set_config("rdt_debug", "True")
-            await ctx.message.add_reaction("✅")
         else:
             await pgsql.owner.set_config("rdt_debug", "False")
-            await ctx.message.add_reaction("✅")
+        await interaction.response.send_message(
+            content=f"All done! {SUCCESS_REACTION}",
+            ephemeral=True
+        )
 
-    @reditor.command()
-    async def characters(self, ctx):
+    @reditor.command(name="characters", description="See how many characters have been used up.")
+    async def characters(self, interaction: discord.Interaction):
         reditor_path = await pgsql.owner.get_config("rdt_reditor-server-path")
         if not reditor_path:
-            await ctx.send("Please set the config variable `rdt_reditor-server-path` to the path of "
-                           "the REditor server.")
+            await interaction.response.send_message("Please set the config variable `rdt_reditor-server-path` to the "
+                                                    "path of the REditor server.")
             return
 
-        await ctx.message.add_reaction("🕐")
+        await interaction.response.defer()
         overview = self.get_character_overview(reditor_path + "data/logs/text-to-speech.csv")
         last_months = 5
         last_keys = list(overview.keys())[-last_months:]
@@ -278,7 +286,7 @@ class REditorCog(commands.Cog):
             if overview[k] > 4000000:
                 message += " ⚠️"
         embed = discord.Embed(description=message, color=discord.colour.Colour.purple())
-        await ctx.send(embed=embed)
+        await interaction.edit_original_response(embed=embed)
 
     @staticmethod
     def get_character_overview(log_path):

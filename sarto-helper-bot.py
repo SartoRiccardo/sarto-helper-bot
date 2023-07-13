@@ -1,33 +1,36 @@
 #!/usr/bin/env python3
 import config
 import discord
-import asyncio
 import modules.data.connection
 from discord.ext import commands
 
-intents = discord.Intents.default()
-intents.message_content = True
-intents.members = True
 
 DEFAULT_PREFIX = "," if not hasattr(config, "PREFIX") else config.PREFIX
-bot = commands.Bot(command_prefix=DEFAULT_PREFIX, intents=intents)
 
 
-async def main():
-    async with bot:
+class SartoHelperBot(commands.Bot):
+    def __init__(self):
+        intents = discord.Intents.default()
+        intents.members = True
+        intents.message_content = True
+        super().__init__(
+            command_prefix=DEFAULT_PREFIX,
+            intents=intents,
+            application_id=config.APP_ID,
+        )
+        self.remove_command("help")
+
+    async def setup_hook(self):
         await modules.data.connection.start()
-
-        bot.remove_command("help")
-        await bot.load_extension("modules.cogs.owner")
+        await self.load_extension("modules.cogs.owner")
 
         cogs = ["feeds", "edopro", "reditor", "reditor_bg", "thumbnail", "utility"]
         for cog in cogs:
             try:
-                await bot.load_extension(f"modules.cogs.{cog}")
+                await self.load_extension(f"modules.cogs.{cog}")
             except discord.ext.commands.errors.ExtensionNotFound as e:
                 print(f"Could not load {e.name}")
-        await bot.start(config.TOKEN)
 
 
 if __name__ == '__main__':
-    asyncio.run(main())
+    SartoHelperBot().run(config.TOKEN)

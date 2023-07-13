@@ -26,6 +26,7 @@ class REditorTasksCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.last_checked = None
+        self.force_update = False
 
     async def cog_load(self):
         self.last_checked = await self.get_last_time()
@@ -85,6 +86,7 @@ class REditorTasksCog(commands.Cog):
     async def daily_threads(self):
         if datetime.now() < (self.last_checked + timedelta(seconds=REditorTasksCog.CHECK_EVERY)):
             return
+        self.force_update = False
         await self.set_last_time(datetime.now())
 
         await pgsql.reditor.remove_old_threads()
@@ -223,7 +225,7 @@ class REditorTasksCog(commands.Cog):
     async def delete_video_thread(self, document_id):
         thread_id = await pgsql.reditor.get_thread_id(document_id)
         for guild in self.bot.guilds:
-            thread = thread = await guild.fetch_channel(thread_id)
+            thread = await guild.fetch_channel(thread_id)
             if not thread:
                 continue
             await pgsql.reditor.delete_thread(thread_id)

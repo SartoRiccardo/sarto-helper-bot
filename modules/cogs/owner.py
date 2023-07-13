@@ -7,6 +7,7 @@ import modules.data.owner
 from discord.ext import commands
 import modules.embeds.help
 import aiofiles
+from typing import Optional, Literal
 CogHelpEmbed = modules.embeds.help.CogHelpEmbed
 ConfigHelpEmbed = modules.embeds.help.ConfigHelpEmbed
 pgsql = modules.data
@@ -72,6 +73,16 @@ class Owner(commands.Cog):
     async def list(self, ctx):
         cogs = [str_cog for str_cog in self.bot.cogs]
         await ctx.send("Loaded cogs: " + ", ".join(cogs))
+
+    @commands.command()
+    @commands.is_owner()
+    async def sync(self, ctx: discord.ext.commands.Context, where: Optional[Literal["."]] = None) -> None:
+        if where == ".":
+            synced = await ctx.bot.tree.sync(guild=ctx.guild)
+        else:
+            synced = await ctx.bot.tree.sync()
+            self.bot.synced_tree = synced
+        await ctx.send(f"Synced {len(synced)} commands ({'globally' if where is None else 'here'}).")
 
     @commands.command()
     @commands.is_owner()
