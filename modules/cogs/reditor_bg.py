@@ -84,10 +84,11 @@ class REditorTasksCog(commands.Cog):
 
     @tasks.loop(seconds=30)
     async def daily_threads(self):
-        if datetime.now() < (self.last_checked + timedelta(seconds=REditorTasksCog.CHECK_EVERY)):
+        now = datetime.now()
+        if now < (self.last_checked + timedelta(seconds=REditorTasksCog.CHECK_EVERY)):
             return
         self.force_update = False
-        await self.set_last_time(datetime.now())
+        await self.set_last_time(now)
 
         await pgsql.reditor.remove_old_threads()
 
@@ -98,11 +99,16 @@ class REditorTasksCog(commands.Cog):
 
     async def send_hot_threads(self, sub, color=None):
         threads = await REditorTasksCog.get_askreddit(sub)
-        debug_msg = f"Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
+        debug_msg = f"- Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
         duplicates = await pgsql.reditor.get_existing_threads([t['id'] for t in threads])
-        debug_msg += f"Dupe threads: `{'`, `'.join(duplicates)}`\n"
+        duplicates = [d.strip() for d in duplicates]
+        if len(duplicates) > 0:
+            debug_msg += f"- Dupe threads: `{'`, `'.join(duplicates)}`\n"
         threads = [t for t in threads if t["id"] not in duplicates][:10]
-        debug_msg += f"Final threads: `{'`, `'.join([t['id'] for t in threads])}`\n"
+        if len(threads) > 0:
+            debug_msg += f"- Final threads: `{'`, `'.join([t['id'] for t in threads])}`\n"
+        else:
+            debug_msg += "- Final threads: none!"
         await util.logger.Logger.log(debug_msg, util.logger.Logger.DEBUG)
         if len(threads) == 0:
             return

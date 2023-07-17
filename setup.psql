@@ -92,7 +92,7 @@ ALTER SEQUENCE public.feeds_id_seq OWNED BY public.feeds.id;
 --
 
 CREATE TABLE public.rdt_create_channel (
-    thread character(6) NOT NULL,
+    thread character(10) NOT NULL,
     channel_id bigint NOT NULL
 );
 
@@ -117,7 +117,7 @@ ALTER TABLE public.rdt_create_messages OWNER TO sarto;
 --
 
 CREATE TABLE public.rdt_threads (
-    id character varying(6) NOT NULL,
+    id character varying(10) NOT NULL,
     title text NOT NULL,
     date_added date NOT NULL,
     chosen boolean DEFAULT false NOT NULL,
@@ -137,7 +137,7 @@ CREATE TABLE public.rdt_videos (
     thumbnail text,
     title text,
     url text,
-    thread character varying(6) NOT NULL,
+    thread character varying(10) NOT NULL,
     message bigint NOT NULL,
     created boolean DEFAULT false NOT NULL,
     document_id integer,
