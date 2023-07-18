@@ -10,4 +10,8 @@ REDDIT_ID = "reddit-id"
 REDDIT_SECRET = "reddit-secret"
 REDDIT_AGENT = "app v1.0 (by /u/yourusername)"
 
+OPENAI_KEY = "sk-...bc"
+
+PIXABAY_API = "38...58"
+
 DEBUG_BUILD = False

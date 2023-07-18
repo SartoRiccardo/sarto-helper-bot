@@ -1,6 +1,7 @@
 import csv
 import random
 import os
+import re
 import discord
 import asyncio
 import importlib
@@ -50,7 +51,7 @@ class REditorCog(commands.Cog):
     async def setup(self, interaction: discord.Interaction):
         """
         Create the category "reditor";
-        Create the channels "#log", "#threads", and "#thumbnails";
+        Create the channels "#log", "#threads", "#cdn", and "#thumbnails";
         Create the webhook "REditor Logger".
         """
         category = await interaction.guild.create_category("reditor")
@@ -58,7 +59,7 @@ class REditorCog(commands.Cog):
         log_channel = await category.create_text_channel("log")
         webhook = await log_channel.create_webhook(name="REditor Logger")
 
-        channels = ["threads", "thumbnails"]
+        channels = ["threads", "thumbnails", "cdn"]
         await asyncio.wait(
             [category.create_text_channel(c) for c in channels] +
             [pgsql.owner.set_config("rdt_logger", webhook.url)],
@@ -77,7 +78,11 @@ class REditorCog(commands.Cog):
             self.check_video_deletion(payload),
         ])
 
-    async def check_video_deletion(self, payload):
+    async def check_video_deletion(self, payload: discord.RawReactionActionEvent) -> None:
+        """
+        Listen for video deletion. Happens when reacting with ❌ to a "React with a thumbnail and title to x" message.
+        Fired by on_raw_reaction_add
+        """
         if str(payload.emoji) != "❌":
             return
 
@@ -95,9 +100,10 @@ class REditorCog(commands.Cog):
 
         await pgsql.reditor.discard_video(message_id=payload.message_id)
 
-    async def check_thread_confirmation(self, payload):
+    async def check_thread_confirmation(self, payload: discord.RawReactionActionEvent) -> None:
         """
-        Listen for thread confirmation
+        Listen for thread confirmation.
+        Fired by on_raw_reaction_add
         """
         if str(payload.emoji) != "✅":
             return
@@ -112,7 +118,8 @@ class REditorCog(commands.Cog):
 
         thread_channel = discord.utils.get(category.text_channels, name="threads")
         thumbnail_channel = discord.utils.get(category.text_channels, name="thumbnails")
-        if not thumbnail_channel or not thread_channel or thread_channel.id != payload.channel_id:
+        cdn_channel = discord.utils.get(category.text_channels, name="cdn")
+        if not (thumbnail_channel and thread_channel and cdn_channel) or thread_channel.id != payload.channel_id:
             return
 
         message = await thread_channel.fetch_message(payload.message_id)
@@ -130,18 +137,73 @@ class REditorCog(commands.Cog):
         threads = await pgsql.reditor.get_threads(payload.message_id, filter=chosen_threads)
         messages = []
         for t in threads:
+            embed = await REditorCog.make_embed(t["title"], cdn_channel)
             messages.append(
-                await thumbnail_channel.send(f"Reply with a title and a thumbnail for **{t['title']}**")
+                await thumbnail_channel.send(
+                    f"Reply with a title and a thumbnail for **{t['title']}**",
+                    embed=embed,
+                )
             )
         await pgsql.reditor.choose_threads(
             [(threads[i]["id"], messages[i].id) for i in range(len(threads))]
         )
 
-    def is_thumbnail_channel(self, guild_id, channel_id):
+    @staticmethod
+    async def make_embed(thread_title: str, cdn_channel: discord.TextChannel) -> discord.Embed:
+        titles = await modules.util.chatgpt.get_video_titles(thread_title)
+        titles_str = "\n".join([f"{i}. {titles[i]}" for i in range(len(titles))])
+        w_text = await modules.util.chatgpt.get_highlighted_text(thread_title)
+        w_text = re.sub(r"\[(.+?)]", lambda m: f"__{m.group(1)}__", w_text)
+        image_hint = await modules.util.chatgpt.get_image_idea(thread_title)
+        thumb_str = f"- **Image Hint:** {image_hint if image_hint else 'N/A'}\n" \
+                    f"- **Weighted Text**: {w_text}"
+        thumbnail = None
+        if image_hint:
+            thumbnail = await REditorCog.get_thumbnail(image_hint, w_text, cdn_channel)
+
+        embed = discord.Embed(
+            title=titles[0],
+            colour=8847874,
+        )
+        if thumbnail:
+            embed.set_image(url=thumbnail)
+        embed.add_field(name="Thread", value=f"- **Title**: {thread_title}", inline=False)
+        embed.add_field(name="Thumbnail", value=thumb_str, inline=False)
+        embed.add_field(name="Titles", value=titles_str, inline=False)
+        return embed
+
+    @staticmethod
+    async def get_thumbnail(image_hint: str, text: str, cdn_channel: discord.TextChannel) -> str or None:
+        queries = await modules.util.chatgpt.get_pixabay_prompts(image_hint)
+        images = []
+        for q in queries:
+            images = (await modules.util.req.pixabay_search(q))[:10]
+            if len(images) > 0:
+                break
+        if len(images) == 0:
+            return None
+
+        path_ids = []
+        for img in images:
+            r = random.randint(1, 1000000)
+            await modules.util.req.download_file(img, f"tmp/pixabay-{r}.png")
+            modules.util.image.make_thumbnail(text, f"tmp/pixabay-{r}.png", f"tmp/thumbnail-{r}.png")
+            path_ids.append(r)
+        message = await cdn_channel.send(
+            image_hint,
+            files=[discord.File(fp=f"tmp/thumbnail-{r}.png") for r in path_ids]
+        )
+        thumbnail = message.attachments[0].url
+        for r in path_ids:
+            os.remove(f"tmp/pixabay-{r}.png")
+            os.remove(f"tmp/thumbnail-{r}.png")
+        return thumbnail
+
+    def is_thumbnail_channel(self, guild_id: int, channel_id: int) -> bool:
         guild = discord.utils.get(self.bot.guilds, id=guild_id)
         category = discord.utils.get(guild.categories, name="reditor")
         if not category:
-            return
+            return False
         channel = discord.utils.get(category.text_channels, name="thumbnails")
         return channel and channel.id == channel_id
 
@@ -152,7 +214,11 @@ class REditorCog(commands.Cog):
             self.check_scene_reaction_add(message),
         ])
 
-    async def check_add_video_meta(self, message):
+    async def check_add_video_meta(self, message: discord.Message) -> None:
+        """
+        Check if a message is adding metadata to a video (title/thumbnail).
+        Fired by on_message
+        """
         if len(message.attachments) == 0 or \
                 message.reference is None or \
                 not self.is_thumbnail_channel(message.reference.guild_id, message.reference.channel_id):
@@ -172,7 +238,11 @@ class REditorCog(commands.Cog):
             await reference.edit(content=reference.content[:39] + reference.content[41:-2])
         await message.add_reaction("✅")
 
-    async def check_scene_reaction_add(self, message):
+    async def check_scene_reaction_add(self, message: discord.Message) -> None:
+        """
+        Check if a message is adding a commend/reaction to a scene.
+        Fired by on_message.
+        """
         if message.reference is None:
             return
         scene_data = await pgsql.reditor.get_scene_info(message.channel.id, message.reference.message_id)
@@ -254,7 +324,7 @@ class REditorCog(commands.Cog):
             ephemeral=True,
         )
 
-    @reditor.command(name="logging", description="Set the logging status")
+    @reditor.command(name="log-debug", description="Set the debug logging status")
     @discord.app_commands.describe(active="The new logging status.")
     @modules.util.discordutils.owner_only()
     async def logging(self, interaction: discord.Interaction, active: bool):

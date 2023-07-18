@@ -18,20 +18,24 @@ THUMB_SIZE = (1280, 720)
 BLACK = (0, 0, 0, 255)
 
 
-def make_thumbnail(text, image_path, save_path, max_chars_per_line=20, put_watermark=False,
-                   backdrop=None):
+def make_thumbnail(text: str,
+                   image_path: str,
+                   save_path: str,
+                   max_chars_per_line: int = 20,
+                   put_watermark: bool = False,
+                   backdrop = None) -> None:
     base = Image.new("RGBA", THUMB_SIZE, color=backdrop if backdrop else BLACK)
     base_canvas = ImageDraw.Draw(base)
 
     text = split_text_in_lines(text, max_chars_per_line)
 
-    background = Image.open(image_path)
+    background = Image.open(image_path).convert("RGBA")
     width, height = background.size
     if width/height > 16/9:
         bg_h = THUMB_SIZE[1]
         bg_w = int(bg_h*width/height)
         background = background.resize((bg_w, bg_h))
-    else:
+    elif width/height < 16/9:
         bg_w = THUMB_SIZE[0]
         bg_h = int(bg_w*height/width)
         background = background.resize((bg_w, bg_h))
