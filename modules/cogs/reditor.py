@@ -242,7 +242,10 @@ class REditorCog(commands.Cog):
         if not reference:
             reference = await message.channel.fetch_message(reply_id)
         if reference and reference.author.id == self.bot.user.id and not reference.edited_at:
-            await reference.edit(content=reference.content[:39] + reference.content[41:-2])
+            await reference.edit(
+                content=reference.content[:39] + reference.content[41:-2],
+                embed=None
+            )
         await message.add_reaction("✅")
 
     async def check_scene_reaction_add(self, message: discord.Message) -> None:
