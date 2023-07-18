@@ -40,15 +40,22 @@ class ThumbnailCog(commands.Cog):
 
     @thumbnail.command(name="create", description="Turn the latest image sent into a thumbnail")
     @discord.app_commands.rename(thumb_text="text")
-    @discord.app_commands.describe(thumb_text="The thumbnail text.")
+    @discord.app_commands.describe(thumb_text="The thumbnail text.",
+                                   with_backdrop="If the thumbnail will have a black backdrop behind the text.",
+                                   watermark="Add a watermark to the thumbnail.",
+                                   image_url="The URL of the image to use as a source.")
     async def create(self,
                      interaction: discord.Interaction,
                      thumb_text: str,
                      with_backdrop: Optional[bool] = True,
-                     watermark: Optional[bool] = False):
-        thumb_img_url = await self.fetch_thumb_image_url(interaction)
-        if thumb_img_url is None:
-            return
+                     watermark: Optional[bool] = False,
+                     image_url: Optional[str] = None):
+        if image_url is None:
+            thumb_img_url = await self.fetch_thumb_image_url(interaction)
+            if thumb_img_url is None:
+                return
+        else:
+            thumb_img_url = image_url
 
         await interaction.response.send_message(
             content="Working on it...",
@@ -64,19 +71,27 @@ class ThumbnailCog(commands.Cog):
         source_path = f"{tmp_path}/thumbnail-{rand_id}-src.png"
         dest_path = f"{tmp_path}/thumbnail-{rand_id}.png"
 
-        await util.requests.download_file(thumb_img_url, source_path)
+        await util.req.download_file(thumb_img_url, source_path)
         util.image.make_thumbnail(thumb_text, source_path, dest_path, backdrop=backdrop,
                                   put_watermark=watermark)
         await self.send_and_rm(source_path, dest_path, interaction)
 
     @thumbnail.command(name="circle", description="Add a circle in a thumbnail.")
     @discord.app_commands.describe(position="The circle's position",
-                                   size="The circle's radius")
+                                   size="The circle's radius",
+                                   image_url="The URL of the image to use as a source.")
     async def circle(self,
                      interaction: discord.Interaction,
                      position: Optional[Literal["left", "center", "right"]] = "center",
-                     size: Optional[Literal["1", "2", "3", "4"]] = "4"):
-        thumb_img_url = await self.fetch_thumb_image_url(interaction)
+                     size: Optional[Literal["1", "2", "3", "4"]] = "4",
+                     image_url: Optional[str] = None):
+        if image_url is None:
+            thumb_img_url = await self.fetch_thumb_image_url(interaction)
+            if thumb_img_url is None:
+                return
+        else:
+            thumb_img_url = image_url
+        
         await interaction.response.send_message(
             content="Working on it...",
             ephemeral=True
@@ -94,20 +109,28 @@ class ThumbnailCog(commands.Cog):
         source_path = f"{tmp_path}/thumbnail-{rand_id}-src.png"
         dest_path = f"{tmp_path}/thumbnail-{rand_id}.png"
 
-        await util.requests.download_file(thumb_img_url, source_path)
+        await util.req.download_file(thumb_img_url, source_path)
         util.image.add_circle(source_path, dest_path, **circle_config)
         await self.send_and_rm(source_path, dest_path, interaction)
 
     @thumbnail.command(name="arrow", description="Add an arrow to a thumbnail.")
     @discord.app_commands.describe(position_x="The arrow's horizontal pointing position",
                                    position_y="The arrow's vertical pointing position",
-                                   size="The arrow's size")
+                                   size="The arrow's size",
+                                   image_url="The URL of the image to use as a source.")
     async def arrow(self,
                     interaction: discord.Interaction,
                     position_x: Optional[Literal["left", "center", "right"]] = "center",
                     position_y: Optional[Literal["top", "center", "bottom"]] = "center",
-                    size: Optional[Literal["small", "medium", "large"]] = "medium"):
-        thumb_img_url = await self.fetch_thumb_image_url(interaction)
+                    size: Optional[Literal["small", "medium", "large"]] = "medium",
+                    image_url: Optional[str] = None):
+        if image_url is None:
+            thumb_img_url = await self.fetch_thumb_image_url(interaction)
+            if thumb_img_url is None:
+                return
+        else:
+            thumb_img_url = image_url
+
         await interaction.response.send_message(
             content="Working on it...",
             ephemeral=True
@@ -130,7 +153,7 @@ class ThumbnailCog(commands.Cog):
         source_path = f"{tmp_path}/thumbnail-{rand_id}-src.png"
         dest_path = f"{tmp_path}/thumbnail-{rand_id}.png"
 
-        await util.requests.download_file(thumb_img_url, source_path)
+        await util.req.download_file(thumb_img_url, source_path)
         util.image.add_arrow(source_path, dest_path, **arrow_config)
         await self.send_and_rm(source_path, dest_path, interaction)
 
