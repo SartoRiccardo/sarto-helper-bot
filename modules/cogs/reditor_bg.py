@@ -99,17 +99,11 @@ class REditorTasksCog(commands.Cog):
 
     async def send_hot_threads(self, sub, color=None):
         threads = await REditorTasksCog.get_askreddit(sub)
-        debug_msg = f"- Threads gotten: `{'`, `'.join([t['id'] for t in threads])}`\n"
+        all_threads = [*threads]
         duplicates = await pgsql.reditor.get_existing_threads([t['id'] for t in threads])
         duplicates = [d.strip() for d in duplicates]
-        if len(duplicates) > 0:
-            debug_msg += f"- Dupe threads: `{'`, `'.join(duplicates)}`\n"
         threads = [t for t in threads if t["id"] not in duplicates][:10]
-        if len(threads) > 0:
-            debug_msg += f"- Final threads: `{'`, `'.join([t['id'] for t in threads])}`\n"
-        else:
-            debug_msg += "- Final threads: none!"
-        await util.logger.Logger.log(debug_msg, util.logger.Logger.DEBUG)
+        await util.logger.Logger.log(modules.util.log_events.LogThreadsGotten(all_threads, duplicates, threads))
         if len(threads) == 0:
             return
 
@@ -167,7 +161,7 @@ class REditorTasksCog(commands.Cog):
         try:
             video_thread = await message.create_thread(name=video_name)
         except discord.errors.HTTPException:
-            await util.logger.Logger.log(f"Thread for {video_name} already created.", util.logger.Logger.DEBUG)
+            await util.logger.Logger.log(modules.util.log_events.LogThreadAlreadyCreated(video_name))
             return
         await video_thread.add_user(thumbnail_channel.guild.owner)
         await pgsql.reditor.set_video_thread(video["thread"], video_thread.id)

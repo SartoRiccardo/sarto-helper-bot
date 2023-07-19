@@ -102,7 +102,7 @@ async def discard_video(thread_id=None, message_id=None, conn=None):
             return True
         export_path = os.path.join(reditor_path, "exports", f"{thread_id}-export")
         if os.path.exists(export_path):
-            await modules.util.logger.Logger.log(f"Deleting {export_path}", modules.util.logger.Logger.INFO)
+            await modules.util.logger.Logger.log(modules.util.log_events.LogVideoDeleted(export_path))
             shutil.rmtree(export_path)
 
         return True
@@ -229,3 +229,15 @@ async def get_logging_status(conn=None):
 @postgres
 async def set_logging_status(log: str, status: bool, conn=None):
     await conn.execute("UPDATE rdt_logging SET active=$2 WHERE log_id=$1", log, status)
+
+
+@postgres
+async def is_log_active(log: str, conn=None) -> bool:
+    results = await conn.fetch("SELECT active FROM rdt_logging where log=$1", log)
+    return results[0]["active"] if len(results) > 0 else False
+
+
+@postgres
+async def get_log_name(log: str, conn=None) -> str:
+    results = await conn.fetch("SELECT name FROM rdt_logging where log=$1", log)
+    return results[0]["name"] if len(results) > 0 else log
