@@ -12,6 +12,7 @@ import modules.data
 import modules.data.owner
 import modules.data.reditor
 import modules.util
+import modules.views.ReditorLog
 from typing import Optional, Literal
 pgsql = modules.data
 util = modules.util
@@ -334,17 +335,14 @@ class REditorCog(commands.Cog):
             ephemeral=True,
         )
 
-    @reditor.command(name="log-debug", description="Set the debug logging status")
-    @discord.app_commands.describe(active="The new logging status.")
+    @reditor.command(name="log", description="Set the logging status for REditor events")
     @modules.util.discordutils.owner_only()
-    async def logging(self, interaction: discord.Interaction, active: bool):
-        if active:
-            await pgsql.owner.set_config("rdt_debug", "True")
-        else:
-            await pgsql.owner.set_config("rdt_debug", "False")
+    async def logging(self, interaction: discord.Interaction):
+        logs = await pgsql.reditor.get_logging_status()
         await interaction.response.send_message(
-            content=f"All done! {SUCCESS_REACTION}",
-            ephemeral=True
+            content="Select a log type to turn it off or on.",
+            ephemeral=True,
+            view=modules.views.ReditorLog.ReditorLog(logs)
         )
 
     @reditor.command(name="characters", description="See how many characters have been used up.")

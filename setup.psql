@@ -41,6 +41,16 @@ SET default_tablespace = '';
 
 SET default_table_access_method = heap;
 
+
+CREATE TABLE public.rdt_logging (
+    log_id VARCHAR(100),
+    severity INT,
+    name VARCHAR(100),
+    description TEXT,
+    active BOOLEAN,
+    PRIMARY KEY (log_id)
+);
+
 --
 -- Name: config; Type: TABLE; Schema: public; Owner: sarto
 --

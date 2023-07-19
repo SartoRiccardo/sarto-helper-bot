@@ -218,3 +218,14 @@ async def get_video_info(thread, conn=None):
     if len(results) == 0:
         return None
     return results[0]
+
+
+@postgres
+async def get_logging_status(conn=None):
+    results = await conn.fetch("SELECT * FROM rdt_logging")
+    return results
+
+
+@postgres
+async def set_logging_status(log: str, status: bool, conn=None):
+    await conn.execute("UPDATE rdt_logging SET active=$2 WHERE log_id=$1", log, status)
