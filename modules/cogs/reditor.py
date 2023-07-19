@@ -133,7 +133,7 @@ class REditorCog(commands.Cog):
             r = message.reactions[i]
             if r.count > 1:
                 chosen_threads.append(i)
-        # await message.delete()
+        await message.delete()
 
         threads = await pgsql.reditor.get_threads(payload.message_id, filter=chosen_threads)
         messages = []
