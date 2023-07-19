@@ -12,8 +12,9 @@ import modules.data
 import modules.data.owner
 import modules.data.reditor
 import modules.util
+import modules.util.log_events
 import modules.views.ReditorLog
-from typing import Optional, Literal
+from typing import Optional, Literal, Tuple
 pgsql = modules.data
 util = modules.util
 
@@ -132,12 +133,14 @@ class REditorCog(commands.Cog):
             r = message.reactions[i]
             if r.count > 1:
                 chosen_threads.append(i)
-        await message.delete()
+        # await message.delete()
 
         threads = await pgsql.reditor.get_threads(payload.message_id, filter=chosen_threads)
         messages = []
+        tokens_used = modules.util.chatgpt.PrompTokens()
         for t in threads:
-            embed = await REditorCog.make_embed(t["title"], cdn_channel)
+            embed, tokens = await REditorCog.make_embed(t["title"], cdn_channel)
+            tokens_used += tokens
             messages.append(
                 await thumbnail_channel.send(
                     f"Reply with a title and a thumbnail for **{t['title']}**",
@@ -147,19 +150,30 @@ class REditorCog(commands.Cog):
         await pgsql.reditor.choose_threads(
             [(threads[i]["id"], messages[i].id) for i in range(len(threads))]
         )
+        await modules.util.logger.Logger.log(modules.util.log_events.LogTokensUsedGPT(
+            tokens_used.prompt, tokens_used.completion
+        ))
 
     @staticmethod
-    async def make_embed(thread_title: str, cdn_channel: discord.TextChannel) -> discord.Embed:
-        titles = await modules.util.chatgpt.get_video_titles(thread_title)
+    async def make_embed(thread_title: str,
+                         cdn_channel: discord.TextChannel) -> Tuple[discord.Embed, modules.util.chatgpt.PrompTokens]:
+        tokens_used = modules.util.chatgpt.PrompTokens()
+        titles, tokens = await modules.util.chatgpt.get_video_titles(thread_title)
+        tokens_used += tokens
         titles_str = "\n".join([f"{i}. {titles[i]}" for i in range(len(titles))])
-        w_text = await modules.util.chatgpt.get_highlighted_text(thread_title)
+
+        w_text, tokens = await modules.util.chatgpt.get_highlighted_text(thread_title)
+        tokens_used += tokens
         w_text = re.sub(r"\[(.+?)]", lambda m: f"__{m.group(1)}__", w_text)
-        image_hint = await modules.util.chatgpt.get_image_idea(thread_title)
+
+        image_hint, tokens = await modules.util.chatgpt.get_image_idea(thread_title)
+        tokens_used += tokens
         thumb_str = f"- **Image Hint:** {image_hint if image_hint else 'N/A'}\n" \
                     f"- **Weighted Text**: {w_text}"
         thumbnail = None
         if image_hint:
-            thumbnail = await REditorCog.get_thumbnail(image_hint, w_text, cdn_channel)
+            thumbnail, tokens = await REditorCog.get_thumbnail(image_hint, w_text, cdn_channel)
+            tokens_used += tokens
 
         embed = discord.Embed(
             title=titles[0],
@@ -170,18 +184,20 @@ class REditorCog(commands.Cog):
         embed.add_field(name="Thread", value=f"- **Title**: {thread_title}", inline=False)
         embed.add_field(name="Thumbnail", value=thumb_str, inline=False)
         embed.add_field(name="Titles", value=titles_str, inline=False)
-        return embed
+        return embed, tokens_used
 
     @staticmethod
-    async def get_thumbnail(image_hint: str, text: str, cdn_channel: discord.TextChannel) -> str or None:
-        queries = await modules.util.chatgpt.get_pixabay_prompts(image_hint)
+    async def get_thumbnail(image_hint: str,
+                            text: str,
+                            cdn_channel: discord.TextChannel) -> Tuple[str or None, modules.util.chatgpt.PrompTokens]:
+        queries, tokens = await modules.util.chatgpt.get_pixabay_prompts(image_hint)
         images = []
         for q in queries:
             images = (await modules.util.req.pixabay_search(q))[:10]
             if len(images) > 0:
                 break
         if len(images) == 0:
-            return None
+            return None, tokens
 
         path_ids = []
         for img in images:
@@ -197,7 +213,7 @@ class REditorCog(commands.Cog):
         for r in path_ids:
             os.remove(f"tmp/pixabay-{r}.png")
             os.remove(f"tmp/thumbnail-{r}.png")
-        return thumbnail
+        return thumbnail, tokens
 
     def is_thumbnail_channel(self, guild_id: int, channel_id: int) -> bool:
         guild = discord.utils.get(self.bot.guilds, id=guild_id)

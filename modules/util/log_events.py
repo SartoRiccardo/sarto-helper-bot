@@ -41,14 +41,15 @@ class LoggableEvent(ABC):
 
 
 class LogTokensUsedGPT(LoggableEvent):
-    def __init__(self, tokens_used: Tuple[int, int]):
-        self.tokens_used = tokens_used
+    def __init__(self, prompt: int, completion: int):
+        self.prompt = prompt
+        self.completion = completion
 
     def get_log(self) -> str:
         return f"Rough amount of prompt tokens used to generate thumbnails/titles: \n" \
-               f"- Request: **__{self.tokens_used[0]:,}__**\n" \
-               f"- Answer: **__{self.tokens_used[1]:,}__**\n" \
-               f"- Estimated Price: **__€{(self.tokens_used[0]*0.0015+self.tokens_used[1]*0.002)/1000:.3}__**"
+               f"- Prompt: **__{self.prompt:,}__**\n" \
+               f"- Completion: **__{self.completion:,}__**\n" \
+               f"- Estimated Price: **__€{(self.prompt*0.0015+self.completion*0.002)/1000:.3f}__**"
 
     @property
     def severity(self) -> int:

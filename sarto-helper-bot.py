@@ -30,6 +30,9 @@ class SartoHelperBot(commands.Bot):
                 await self.load_extension(f"modules.cogs.{cog}")
             except discord.ext.commands.errors.ExtensionNotFound as e:
                 print(f"Could not load {e.name}")
+            except Exception as e:
+                print(e)
+                print(f"Could not load {e.name}")
 
 
 if __name__ == '__main__':

@@ -233,11 +233,11 @@ async def set_logging_status(log: str, status: bool, conn=None):
 
 @postgres
 async def is_log_active(log: str, conn=None) -> bool:
-    results = await conn.fetch("SELECT active FROM rdt_logging where log=$1", log)
+    results = await conn.fetch("SELECT active FROM rdt_logging where log_id=$1", log)
     return results[0]["active"] if len(results) > 0 else False
 
 
 @postgres
 async def get_log_name(log: str, conn=None) -> str:
-    results = await conn.fetch("SELECT name FROM rdt_logging where log=$1", log)
+    results = await conn.fetch("SELECT name FROM rdt_logging where log_id=$1", log)
     return results[0]["name"] if len(results) > 0 else log
