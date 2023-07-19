@@ -24,7 +24,7 @@ class SartoHelperBot(commands.Bot):
         await modules.data.connection.start()
         await self.load_extension("modules.cogs.owner")
 
-        cogs = ["feeds", "edopro", "reditor", "reditor_bg", "thumbnail", "utility"]
+        cogs = ["feeds", "edopro", "reditor", "reditor_bg", "thumbnail", "utility", "btd6"]
         for cog in cogs:
             try:
                 await self.load_extension(f"modules.cogs.{cog}")
