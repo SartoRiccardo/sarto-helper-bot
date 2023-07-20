@@ -163,7 +163,7 @@ def reduce_size(path):
     while os.stat(path).st_size > 2000000:
         thumb = Image.open(path)
         width, height = thumb.size
-        thumb = thumb.resize((int(width*0.9), int(height*0.9)), Image.ANTIALIAS)
+        thumb = thumb.resize((int(width*0.9), int(height*0.9)), Image.LANCZOS)
         thumb.save(path)
         thumb.close()
 
