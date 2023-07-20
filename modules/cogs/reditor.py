@@ -1,4 +1,5 @@
 import csv
+import traceback
 import random
 import os
 import re
@@ -139,7 +140,13 @@ class REditorCog(commands.Cog):
         messages = []
         tokens_used = modules.util.chatgpt.PrompTokens()
         for t in threads:
-            embed, tokens = await REditorCog.make_embed(t["title"], cdn_channel)
+            embed = discord.Embed(description="Something went wrong loading this!")
+            try:
+                embed, tokens = await REditorCog.make_embed(t["title"], cdn_channel)
+            except Exception as exc:
+                await modules.util.logger.Logger.log(
+                    modules.util.log_events.LogError(traceback.format_exc()[:1900])
+                )
             tokens_used += tokens
             messages.append(
                 await thumbnail_channel.send(

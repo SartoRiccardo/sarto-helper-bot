@@ -128,3 +128,19 @@ class LogThreadAlreadyCreated(LoggableEvent):
 
 
 # Errors
+
+
+class LogError(LoggableEvent):
+    def __init__(self, traceback: str):
+        self.traceback = traceback
+
+    def get_log(self) -> str:
+        return f"```\n{self.traceback}\n```"
+
+    @property
+    def severity(self) -> int:
+        return ERROR
+
+    @property
+    def id(self) -> str:
+        return "error"
