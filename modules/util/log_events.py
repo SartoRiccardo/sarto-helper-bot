@@ -46,7 +46,7 @@ class LogTokensUsedGPT(LoggableEvent):
         self.completion = completion
 
     def get_log(self) -> str:
-        return f"Rough amount of prompt tokens used to generate thumbnails/titles: \n" \
+        return f"Prompt tokens used to generate thumbnails/titles: \n" \
                f"- Prompt: **__{self.prompt:,}__**\n" \
                f"- Completion: **__{self.completion:,}__**\n" \
                f"- Estimated Price: **__€{(self.prompt*0.0015+self.completion*0.002)/1000:.3f}__**"

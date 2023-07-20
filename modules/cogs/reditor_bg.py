@@ -105,16 +105,16 @@ class REditorTasksCog(commands.Cog):
         if len(threads) == 0:
             return
 
-        message = ""
+        message_pts = []
         score_len = len(str(max([t['score'] for t in threads])))  # Get the digit number of the highest score
         msg_template = "{}. **⇧ `{:<" + str(score_len) + "}`**   |   {}"
         for i in range(len(threads)):
             t = threads[i]
-            message += msg_template.format(i+1, t['score'], t['title'])
+            message_pts.append(msg_template.format(i+1, t['score'], t['title']))
 
         embed = discord.Embed(
             title=f"r/{sub} ({datetime.now().strftime('%Y-%m-%d')})",
-            description=message,
+            description="\n".join(message_pts),
             color=color if color else self.bot.default_embed_color,
         )
 
