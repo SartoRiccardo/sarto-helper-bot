@@ -69,9 +69,13 @@ class LogThreadsGotten(LoggableEvent):
     def get_log(self) -> str:
         if len(self.all_threads) == 0:
             return "No threads found!"
+        final_threads = "*None!*"
+        if len(self.final) > 0:
+            final_threads = "`" + "` `".join(self.final) + "`"
         return f"- All Threads: {self.all_threads}\n" + \
-               (f"- Duplicate Threads: {self.dupes}\n" if len(self.dupes) > 0 else "") + \
-               (f"- Final Threads: {self.final}\n" if len(self.final) > 0 else "")
+               (f"- Duplicate Threads: `{'` `'.join(self.dupes)}`\n"
+                if len(self.dupes) > 0 else "") + \
+               f"- Final Threads: {final_threads}\n"
 
     @property
     def severity(self) -> int:

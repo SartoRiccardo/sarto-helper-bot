@@ -181,8 +181,8 @@ class REditorCog(commands.Cog):
         )
         if thumbnail:
             embed.set_image(url=thumbnail)
-        embed.add_field(name="Thread", value=f"- **Title**: {thread_title}", inline=False)
-        embed.add_field(name="Thumbnail", value=thumb_str, inline=False)
+        embed.add_field(name="Thread", value=f"- **Title**: {thread_title}", inline=True)
+        embed.add_field(name="Thumbnail", value=thumb_str, inline=True)
         embed.add_field(name="Titles", value=titles_str, inline=False)
         return embed, tokens_used
 
@@ -311,56 +311,86 @@ class REditorCog(commands.Cog):
                         type_str: Optional[Literal["short", "video"]] = "video"):
         videos_ready = await pgsql.reditor.get_uploadable(shorts=(type_str == "short"))
         videos_exportable = await pgsql.reditor.get_exportable(shorts=(type_str == "short"))
-        if len(videos_ready) == 0:
-            message = f"There are no {type_str}s ready!"
-        else:
-            message = f"There are {len(videos_ready)}{'+' if len(videos_ready) > 5 else ''} {type_str}s ready:"
-            n = 1
-            for v in videos_ready:
-                if not v['title']:
-                    server = interaction.guild.id
-                    category = discord.utils.get(interaction.guild.categories, name="reditor")
-                    if not category:
-                        message += f"\n{n}. *⚠️ Unknown {type_str}*"
-                        continue
-                    thumbnails = discord.utils.get(category.text_channels, name="thumbnails")
-                    if not thumbnails:
-                        message += f"\n{n}. *⚠️ Unknown {type_str}*"
-                        continue
-                    title = f"⚠️ [Unset video](https://discord.com/channels/{server}/{thumbnails.id}/{v['message']})"
-                else:
-                    title_escaped = v['title'].replace('*', '\\*')
-                    title = f"**{title_escaped}**"
 
-                message += f"\n{n}. {title}"
-                n += 1
-            if len(videos_ready) > 5:
-                message += "\n..."
+        embed = discord.Embed(
+            color=self.bot.default_embed_color
+        )
+
+        if len(videos_ready) == 0:
+            embed.add_field(
+                name="Exported",
+                value=f"There are no {type_str}s ready!",
+            )
+        else:
+            message = f"There are **{len(videos_ready)}{'+' if len(videos_ready) > 5 else ''}** {type_str}s ready:"
+            message += self.get_video_list_message(interaction, videos_ready, type_str)
+            embed.add_field(
+                name="Exported",
+                value=message,
+            )
 
         if len(videos_exportable) == 0:
-            message += f"\n\nThere are no {type_str}s exportable! A random one will be picked."
+            embed.add_field(
+                name="Created",
+                value=f"There are no {type_str}s exportable!",
+            )
         else:
-            message += f"\n\nThere are **{len(videos_exportable)}** {type_str}s that can be exported."
+            message = f"There are **{len(videos_exportable)}** {type_str}s that can be exported."
+            message += self.get_video_list_message(interaction, videos_exportable, type_str)
+            embed.add_field(
+                name="Created",
+                value=message,
+            )
+
         await interaction.response.send_message(
-            embed=discord.Embed(
-                title="Videos Ready",
-                description=message,
-                color=discord.colour.Colour.purple()
-            ),
+            embed=embed,
             ephemeral=True,
         )
+
+    @staticmethod
+    def get_video_list_message(interaction: discord.Interaction,
+                               video_list,
+                               type_str: Optional[Literal["short", "video"]] = "video") -> str:
+        message = ""
+        n = 1
+        for v in video_list:
+            if not v['title']:
+                server = interaction.guild.id
+                category = discord.utils.get(interaction.guild.categories, name="reditor")
+                if not category:
+                    message += f"\n{n}. *⚠️ Unknown {type_str}*"
+                    continue
+                thumbnails = discord.utils.get(category.text_channels, name="thumbnails")
+                if not thumbnails:
+                    message += f"\n{n}. *⚠️ Unknown {type_str}*"
+                    continue
+                title = f"⚠️ [Unset video](https://discord.com/channels/{server}/{thumbnails.id}/{v['message']})"
+            else:
+                title_escaped = v['title'].replace('*', '\\*')
+                title = f"{title_escaped}"
+
+            message += f"\n{n}. {title}"
+            n += 1
+            if n > 4:
+                break
+
+        if len(video_list) > 4:
+            message += "\n5. ..."
+
+        return message
 
     @reditor.command(name="log", description="Set the logging status for REditor events")
     @modules.util.discordutils.owner_only()
     async def logging(self, interaction: discord.Interaction):
         logs = await pgsql.reditor.get_logging_status()
+        view = modules.views.ReditorLog.ReditorLog(logs, interaction)
         await interaction.response.send_message(
             content="Select a log type to turn it off or on.",
             ephemeral=True,
-            view=modules.views.ReditorLog.ReditorLog(logs)
+            view=view
         )
 
-    @reditor.command(name="characters", description="See how many characters have been used up.")
+    @reditor.command(name="charcount", description="See how many characters have been used up.")
     async def characters(self, interaction: discord.Interaction):
         reditor_path = await pgsql.owner.get_config("rdt_reditor-server-path")
         if not reditor_path:
@@ -373,12 +403,18 @@ class REditorCog(commands.Cog):
         last_months = 5
         last_keys = list(overview.keys())[-last_months:]
 
-        message = f"**Characters in the last {last_months} months:**"
+        months = {"1": "Jan", "2": "Feb", "3": "Mar", "4":  "Apr", "5":  "May", "6":  "Jun",
+                  "7": "Lug", "8": "Aug", "9": "Sep", "10": "Oct", "11": "Nov", "12": "Dec"}
+        message_pts = []
         for k in last_keys:
-            message += f"\n`{k:<7}`: `{overview[k]:>10,}`"
-            if overview[k] > 4000000:
-                message += " ⚠️"
-        embed = discord.Embed(description=message, color=discord.colour.Colour.purple())
+            part = f"- `{months[k[5:]]} {k[:4]}`: `{overview[k]:>9,}`"
+            if overview[k] > 1_000_000:
+                part += " ⚠️"
+            message_pts.append(part)
+        message = "None!" if len(message_pts) == 0 else "\n".join(message_pts)
+        embed = discord.Embed(title=f"TTS Characters usage (last {len(last_keys)} months)",
+                              description=message,
+                              color=self.bot.default_embed_color)
         await interaction.edit_original_response(embed=embed)
 
     @staticmethod

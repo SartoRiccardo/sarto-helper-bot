@@ -1,6 +1,5 @@
 import os
 import discord
-import random
 import aiofiles
 import asyncio
 import asyncpraw
@@ -93,13 +92,12 @@ class REditorTasksCog(commands.Cog):
         await pgsql.reditor.remove_old_threads()
 
         subs_to_check = await self.get_subreddits_to_check()
-        color = random.randint(0, 16777215)
         for sub in subs_to_check:
-            await self.send_hot_threads(sub, color=color)
+            await self.send_hot_threads(sub)
 
     async def send_hot_threads(self, sub, color=None):
         threads = await REditorTasksCog.get_askreddit(sub)
-        all_threads = [*threads]
+        all_threads = [t["id"] for t in threads]
         duplicates = await pgsql.reditor.get_existing_threads([t['id'] for t in threads])
         duplicates = [d.strip() for d in duplicates]
         threads = [t for t in threads if t["id"] not in duplicates][:10]
@@ -109,16 +107,16 @@ class REditorTasksCog(commands.Cog):
 
         message = ""
         score_len = len(str(max([t['score'] for t in threads])))  # Get the digit number of the highest score
-        msg_template = "{}. `^ {:<" + str(score_len) + "}` {}\n"
+        msg_template = "{}. **⇧ `{:<" + str(score_len) + "}`**   |   {}"
         for i in range(len(threads)):
             t = threads[i]
             message += msg_template.format(i+1, t['score'], t['title'])
 
         embed = discord.Embed(
-            title="Threads of today",
+            title=f"r/{sub} ({datetime.now().strftime('%Y-%m-%d')})",
             description=message,
-            color=color if color else discord.Colour.purple(),
-        ).set_footer(text=f"r/{sub}")
+            color=color if color else self.bot.default_embed_color,
+        )
 
         threads = [(threads[i]["id"], threads[i]["title"]) for i in range(len(threads))]
         for g in self.bot.guilds:
@@ -133,7 +131,7 @@ class REditorTasksCog(commands.Cog):
         if not thread_channel:
             return
 
-        message = await thread_channel.send(f"Today's threads:\n", embed=embed)
+        message = await thread_channel.send(embed=embed)
         reactions = ["1️⃣", "2️⃣",  "3️⃣",  "4️⃣", "5️⃣", "6️⃣", "7️⃣", "8️⃣", "9️⃣", "🔟"]
         for i in range(min(len(reactions), len(threads))):
             r = reactions[i]

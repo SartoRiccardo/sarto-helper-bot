@@ -18,6 +18,7 @@ class SartoHelperBot(commands.Bot):
             intents=intents,
             application_id=config.APP_ID,
         )
+        self.default_embed_color = discord.Color.dark_magenta()
         self.remove_command("help")
 
     async def setup_hook(self):
