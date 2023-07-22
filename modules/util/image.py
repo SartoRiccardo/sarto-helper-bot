@@ -31,7 +31,7 @@ def make_thumbnail(text: str,
 
     background = Image.open(image_path).convert("RGBA")
     width, height = background.size
-    if width/height > 16/9:
+    if width/height >= 16/9:
         bg_h = THUMB_SIZE[1]
         bg_w = int(bg_h*width/height)
         background = background.resize((bg_w, bg_h))
