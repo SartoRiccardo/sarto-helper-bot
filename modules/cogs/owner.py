@@ -175,7 +175,7 @@ class Owner(commands.Cog):
 
         traceback_str = "".join(buffer[i:] + buffer[0:i])
         if len(traceback_str) > 0:
-            await ctx.send(f"```\n{traceback_str}\n```")
+            await ctx.send(f"```\n{traceback_str[:1900]}\n```")
         else:
             await ctx.message.add_reaction("❌")
 

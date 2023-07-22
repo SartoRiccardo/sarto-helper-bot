@@ -89,7 +89,7 @@ async def set_video_meta(message_id, title, thumbnail_url, is_short=False, conn=
 
 
 @postgres
-async def discard_video(thread_id=None, message_id=None, conn=None):
+async def discard_video(thread_id: str = None, message_id: int = None, conn=None) -> bool:
     if message_id and not thread_id:
         results = await conn.fetch("SELECT thread FROM rdt_videos WHERE message=$1", message_id)
         if len(results) == 0:
@@ -100,7 +100,7 @@ async def discard_video(thread_id=None, message_id=None, conn=None):
         reditor_path = await modules.data.owner.get_config("rdt_reditor-server-path")
         if reditor_path is None:
             return True
-        export_path = os.path.join(reditor_path, "exports", f"{thread_id}-export")
+        export_path = os.path.join(reditor_path, "exports", f"{thread_id}-auto-export")
         if os.path.exists(export_path):
             await modules.util.logger.Logger.log(modules.util.log_events.LogVideoDeleted(export_path))
             shutil.rmtree(export_path)
