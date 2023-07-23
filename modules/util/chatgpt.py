@@ -1,4 +1,5 @@
 import openai
+from retry import retry
 import asyncio
 from typing import List, Tuple
 from config import OPENAI_KEY
@@ -72,6 +73,13 @@ async def get_highlighted_text(thread_title: str) -> Tuple[str, PrompTokens]:
     return await request_openai(prompt)
 
 
+@retry(
+    exceptions=(openai.error.ServiceUnavailableError, openai.error.RateLimitError),
+    tries=5,
+    delay=10,
+    max_delay=60,
+    jitter=(10, 20),
+)
 async def request_openai(*message_list) -> Tuple[str, PrompTokens]:
     messages = []
     role = "user"
