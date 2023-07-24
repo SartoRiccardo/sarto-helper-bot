@@ -39,8 +39,8 @@ async def track_process(pid: str, pname: str, conn=None) -> None:
 
 
 @postgres
-async def untrack_process(pid: str, conn=None) -> None:
-    await conn.execute("DELETE FROM processes WHERE pid=$1", pid)
+async def untrack_process(pname: str, conn=None) -> None:
+    await conn.execute("DELETE FROM processes WHERE pname=$1", pname)
 
 
 @postgres

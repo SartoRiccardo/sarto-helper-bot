@@ -17,6 +17,8 @@ class ProcessCog(commands.Cog):
         self.next_check_processes = datetime.fromtimestamp(now - now % self.CHECK_EVERY)
 
     @process.command(name="add", description="Track a command")
+    @discord.app_commands.describe(process_id="The name of the process",
+                                   process_name="A human readable name of the process")
     async def cmd_add(self, interaction: discord.Interaction, process_id: str, process_name: str) -> None:
         await modules.data.owner.track_process(process_id, process_name)
         await interaction.response.send_message(
@@ -25,14 +27,16 @@ class ProcessCog(commands.Cog):
         )
 
     @process.command(name="remove", description="Stop tracking a command")
-    async def cmd_remove(self, interaction: discord.Interaction, process_id: str) -> None:
-        await modules.data.owner.track_process(process_id)
+    @discord.app_commands.describe(process_name="The process' human readable name.")
+    async def cmd_remove(self, interaction: discord.Interaction, process_name: str) -> None:
+        await modules.data.owner.untrack_process(process_name)
         await interaction.response.send_message(
-            content=f"✅ **All Done!** The process `{process_id}` is no longer tracked!",
+            content=f"✅ **All Done!** The process {process_name} is no longer tracked!",
             ephemeral=True,
         )
 
     @process.command(name="channel", description="Set a channel as a Process Overview channel.")
+    @discord.app_commands.describe(channel="The channel to start posting on.")
     async def cmd_channel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         await modules.data.owner.set_config("process-ch", channel.id)
         await interaction.response.send_message(
