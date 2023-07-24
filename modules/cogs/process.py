@@ -38,7 +38,7 @@ class ProcessCog(commands.Cog):
     @process.command(name="channel", description="Set a channel as a Process Overview channel.")
     @discord.app_commands.describe(channel="The channel to start posting on.")
     async def cmd_channel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
-        await modules.data.owner.set_config("process-ch", channel.id)
+        await modules.data.owner.set_config("process-ch", str(channel.id))
         await interaction.response.send_message(
             content=f"✅ **All Done!** The channel {channel.mention} will be regularly updated!",
             ephemeral=True,
