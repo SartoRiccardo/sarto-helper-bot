@@ -100,7 +100,7 @@ class ProcessCog(commands.Cog):
         if channel is None:
             return
         async for msg in channel.history(limit=25):
-            if msg.author == self.bot:
+            if msg.author == self.bot.user:
                 await msg.edit(content=content)
                 return
         await channel.send(content=content)
@@ -114,6 +114,7 @@ class ProcessCog(commands.Cog):
             return ch
         except discord.NotFound:
             return None
+
 
 async def setup(bot):
     await bot.add_cog(ProcessCog(bot))
