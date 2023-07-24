@@ -2,6 +2,7 @@ import discord
 import re
 import subprocess
 import modules.data.connection
+import modules.util.discordutils
 from datetime import datetime, timedelta
 from discord.ext import commands, tasks
 
@@ -19,6 +20,7 @@ class ProcessCog(commands.Cog):
     @process.command(name="add", description="Track a command")
     @discord.app_commands.describe(process_id="The name of the process",
                                    process_name="A human readable name of the process")
+    @modules.util.discordutils.owner_only()
     async def cmd_add(self, interaction: discord.Interaction, process_id: str, process_name: str) -> None:
         await modules.data.owner.track_process(process_id, process_name)
         await interaction.response.send_message(
@@ -28,6 +30,7 @@ class ProcessCog(commands.Cog):
 
     @process.command(name="remove", description="Stop tracking a command")
     @discord.app_commands.describe(process_name="The process' human readable name.")
+    @modules.util.discordutils.owner_only()
     async def cmd_remove(self, interaction: discord.Interaction, process_name: str) -> None:
         await modules.data.owner.untrack_process(process_name)
         await interaction.response.send_message(
@@ -37,10 +40,20 @@ class ProcessCog(commands.Cog):
 
     @process.command(name="channel", description="Set a channel as a Process Overview channel.")
     @discord.app_commands.describe(channel="The channel to start posting on.")
+    @modules.util.discordutils.owner_only()
     async def cmd_channel(self, interaction: discord.Interaction, channel: discord.TextChannel) -> None:
         await modules.data.owner.set_config("process-ch", str(channel.id))
         await interaction.response.send_message(
             content=f"✅ **All Done!** The channel {channel.mention} will be regularly updated!",
+            ephemeral=True,
+        )
+
+    @process.command(name="force-check", description="Forces a re-check of all processes")
+    @modules.util.discordutils.owner_only()
+    async def cmd_force(self, interaction: discord.Interaction) -> None:
+        await self.check_processes()
+        await interaction.response.send_message(
+            content=f"✅ **All Done!** The process overview has been updated!",
             ephemeral=True,
         )
 
@@ -50,7 +63,9 @@ class ProcessCog(commands.Cog):
         if now < self.next_check_processes:
             return
         self.next_check_processes += timedelta(seconds=self.CHECK_EVERY)
+        await self.check_processes()
 
+    async def check_processes(self):
         processes = sorted(await modules.data.owner.get_processes(), key=lambda x: x["pname"])
         pids: dict[str, int] = {}
 
