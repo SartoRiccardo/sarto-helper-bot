@@ -51,6 +51,11 @@ CREATE TABLE public.rdt_logging (
     PRIMARY KEY (log_id)
 );
 
+CREATE TABLE public.processes (
+    pid VARCHAR(100),
+    pname VARCHAR(100)
+);
+
 --
 -- Name: config; Type: TABLE; Schema: public; Owner: sarto
 --
