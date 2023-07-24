@@ -70,7 +70,7 @@ class ProcessCog(commands.Cog):
         content += "\n".join(content_parts)
         content += f"*Last updated: <t:{int(now.timestamp())}:R>*"
 
-        channel_id = await modules.data.owner.get_config("process-ch")
+        channel_id = int(await modules.data.owner.get_config("process-ch"))
         if channel_id is None:
             return
         channel: discord.TextChannel = await self.get_channel(channel_id)
