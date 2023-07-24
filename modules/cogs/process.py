@@ -51,7 +51,7 @@ class ProcessCog(commands.Cog):
     @process.command(name="force-check", description="Forces a re-check of all processes")
     @modules.util.discordutils.owner_only()
     async def cmd_force(self, interaction: discord.Interaction) -> None:
-        await self.check_processes()
+        await self.check_processes(datetime.now())
         await interaction.response.send_message(
             content=f"✅ **All Done!** The process overview has been updated!",
             ephemeral=True,
@@ -63,9 +63,9 @@ class ProcessCog(commands.Cog):
         if now < self.next_check_processes:
             return
         self.next_check_processes += timedelta(seconds=self.CHECK_EVERY)
-        await self.check_processes()
+        await self.check_processes(now)
 
-    async def check_processes(self):
+    async def check_processes(self, time: datetime):
         processes = sorted(await modules.data.owner.get_processes(), key=lambda x: x["pname"])
         pids: dict[str, int] = {}
 
