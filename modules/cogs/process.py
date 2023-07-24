@@ -82,17 +82,15 @@ class ProcessCog(commands.Cog):
                     match = re.match(r"\S+\s+(\d+)", ln)
                     pids[process["pid"]] = int(match.group(1))
 
-        template = "【{}】  `{:>8}`   {}"
+        template = "【{}】  `{:>8}`   {}\n"
         content = "# Bot Overview\n" \
-                  " __**Status**__           __**PID**__         __**Process**__"
-        content_parts = []
+                  " __**Status**__           __**PID**__         __**Process**__\n"
         for process in processes:
-            content_parts.append(template.format(
-                "🟢" if process in pids.keys() else "🔴",
-                pids[process["pid"]] if process in pids.keys() else "",
+            content += template.format(
+                "🟢" if process["pid"] in pids.keys() else "🔴",
+                pids[process["pid"]] if process["pid"] in pids.keys() else "",
                 process["pname"],
-            ))
-        content += "\n".join(content_parts)
+            )
         content += f"*Last updated: <t:{int(time.timestamp())}:R>*"
 
         channel_id = int(await modules.data.owner.get_config("process-ch"))
