@@ -17,6 +17,12 @@ class ProcessCog(commands.Cog):
         now = int((datetime.now() + timedelta(seconds=self.CHECK_EVERY)).timestamp())
         self.next_check_processes = datetime.fromtimestamp(now - now % self.CHECK_EVERY)
 
+    async def cog_load(self):
+        self.task_check_processes.start()
+
+    async def cog_unload(self):
+        self.task_check_processes.stop()
+
     @process.command(name="add", description="Track a command")
     @discord.app_commands.describe(process_id="The name of the process",
                                    process_name="A human readable name of the process")
@@ -58,7 +64,7 @@ class ProcessCog(commands.Cog):
         )
 
     @tasks.loop(seconds=10)
-    async def task_check_processes(self, ctx):
+    async def task_check_processes(self):
         now = datetime.now()
         if now < self.next_check_processes:
             return
@@ -87,7 +93,7 @@ class ProcessCog(commands.Cog):
                 process["pname"],
             ))
         content += "\n".join(content_parts)
-        content += f"*Last updated: <t:{int(now.timestamp())}:R>*"
+        content += f"*Last updated: <t:{int(time.timestamp())}:R>*"
 
         channel_id = int(await modules.data.owner.get_config("process-ch"))
         if channel_id is None:
