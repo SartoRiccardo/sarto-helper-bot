@@ -61,9 +61,9 @@ class ProcessCog(commands.Cog):
                     match = re.match(r"\S+\s+(\d+)", ln)
                     pids[process["pid"]] = int(match.group(1))
 
-        template = "【{}】  `{:>5}`   {}"
+        template = "【{}】  `{:>8}`   {}"
         content = "# Bot Overview\n" \
-                  " __**Status**__      __**PID**__      __**Process**__"
+                  " __**Status**__           __**PID**__         __**Process**__"
         content_parts = []
         for process in processes:
             content_parts.append(template.format(
