@@ -11,6 +11,9 @@ class PrompTokens:
         self.prompt = prompt
         self.completion = completion
 
+    def cost(self) -> float:
+        return (self.prompt*0.0015+self.completion*0.002)/1000
+
     def __add__(self, other):
         if not isinstance(other, PrompTokens):
             return
@@ -69,6 +72,16 @@ async def get_highlighted_text(thread_title: str) -> Tuple[str, PrompTokens]:
     1. It must strictly be 70 characters or less. NEVER say something longer than 70 characters UNDER ANY CIRCUMSTANCE. This includes spaces and punctuation.
     2. It must NOT contain "Reddit"
     Never EVER break the first rule. The first rule is the most important one.
+    """[1:-1].replace("    ", "")
+    return await request_openai(prompt)
+
+
+async def get_poll(thread_title: str) -> Tuple[str, PrompTokens]:
+    prompt = f"""
+    A person has asked this question: {thread_title}
+    Rephrase the question, and generate 4 possible responses to the question. At least 3 of the responses must be humorous. Do not give me an explanation for the responses. I only want the responses. Not the explanation. Responses must be strictly less than 36 characters long, and at least 3 words long. Responses longer than 36 characters are invalid, do NOT type them.
+    Do not prefix the rephrased question with anything like "Rephrased Question:" or "Question:". I want the question in a single line of text.
+    Prefix the answers with an emoji. The emojis must all be different.
     """[1:-1].replace("    ", "")
     return await request_openai(prompt)
 

@@ -6,3 +6,4 @@ asyncpraw
 aiofiles
 openai
 websockets
+emoji

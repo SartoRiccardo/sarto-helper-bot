@@ -15,6 +15,7 @@ import modules.data.reditor
 import modules.util
 import modules.util.log_events
 import modules.views.ReditorLog
+import emoji
 from typing import Optional, Literal, Tuple
 pgsql = modules.data
 util = modules.util
@@ -471,6 +472,30 @@ class REditorCog(commands.Cog):
         file.close()
 
         return True
+
+    @reditor.command(name="community", description="Generate a community post")
+    @modules.util.discordutils.owner_only()
+    async def cmd_community_post(self, interaction: discord.Interaction, thread_title: str) -> None:
+        await interaction.response.send_message(
+            content="💬 Just a moment...",
+            ephemeral=True,
+        )
+        response, tokens = await modules.util.chatgpt.get_poll(thread_title)
+        response += f"\n\n*Tokens used: {tokens.prompt}/{tokens.completion} __(€{tokens.cost():.3f})__*"
+
+        for e in emoji.emoji_list(response):
+            response += f"\nhttps://emojiapi.dev/api/v1/{ord(e['emoji']):X}/512.png"
+
+        await interaction.edit_original_response(
+            content=response,
+        )
+
+    @reditor.command(name="shorten", description="Shorten a youtube URL")
+    async def cmd_community_post(self, interaction: discord.Interaction, url: str) -> None:
+        match = re.findall(r"v=([^=&]*)", url)
+        await interaction.response.send_message(
+            content=f"https://youtu.be/{match[0]}"
+        )
 
 
 async def setup(bot):
