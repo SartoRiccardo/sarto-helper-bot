@@ -94,7 +94,7 @@ class REditorCog(commands.Cog):
         if guild.owner_id != payload.user_id:
             return
 
-        category = discord.utils.get(guild.categories, name="reditor")
+        category = self.get_reditor_category(guild)
         if not category:
             return
 
@@ -116,7 +116,7 @@ class REditorCog(commands.Cog):
         if guild.owner_id != payload.user_id:
             return
 
-        category = discord.utils.get(guild.categories, name="reditor")
+        category = self.get_reditor_category(guild)
         if not category:
             return
 
@@ -225,7 +225,7 @@ class REditorCog(commands.Cog):
 
     def is_thumbnail_channel(self, guild_id: int, channel_id: int) -> bool:
         guild = discord.utils.get(self.bot.guilds, id=guild_id)
-        category = discord.utils.get(guild.categories, name="reditor")
+        category = self.get_reditor_category(guild)
         if not category:
             return False
         channel = discord.utils.get(category.text_channels, name="thumbnails")
@@ -364,7 +364,7 @@ class REditorCog(commands.Cog):
         for v in video_list:
             if not v['title']:
                 server = interaction.guild.id
-                category = discord.utils.get(interaction.guild.categories, name="reditor")
+                category = REditorCog.get_reditor_category(interaction.guild)
                 if not category:
                     message += f"\n{n}. *⚠️ Unknown {type_str}*"
                     continue
@@ -496,6 +496,15 @@ class REditorCog(commands.Cog):
         await interaction.response.send_message(
             content=f"https://youtu.be/{match[0]}"
         )
+
+    @staticmethod
+    def get_reditor_category(guild: discord.Guild) -> discord.CategoryChannel or None:
+        category = None
+        for c in guild.categories:
+            if "reditor" in c.name.lower():
+                category = c
+                break
+        return category
 
 
 async def setup(bot):
