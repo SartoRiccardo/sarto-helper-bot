@@ -34,6 +34,7 @@ class REditorTasksCog(commands.Cog):
         # self.update_video_status.start()
         self.delete_exported_threads.start()
         self.upload_tiktoks.start()
+        self.task_update_reditor_category_name.start()
 
     async def cog_unload(self):
         importlib.reload(modules.data.reditor)
@@ -46,6 +47,7 @@ class REditorTasksCog(commands.Cog):
         self.update_video_status.stop()
         self.delete_exported_threads.stop()
         self.upload_tiktoks.stop()
+        self.task_update_reditor_category_name.stop()
 
     @staticmethod
     async def get_last_time():
