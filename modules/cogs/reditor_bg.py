@@ -10,7 +10,7 @@ import modules.data
 import modules.data.owner
 import modules.data.reditor
 import modules.util
-import modules.cogs.reditor
+import modules.util.discordutils
 from config import REDDIT_AGENT, REDDIT_ID, REDDIT_SECRET
 pgsql = modules.data
 util = modules.util
@@ -123,7 +123,7 @@ class REditorTasksCog(commands.Cog):
 
         threads = [(threads[i]["id"], threads[i]["title"]) for i in range(len(threads))]
         for g in self.bot.guilds:
-            category = modules.cogs.reditor.REditorCog.get_reditor_category(g)
+            category = modules.util.discordutils.get_reditor_category(g)
             if not category:
                 continue
             await self.post_threads(category, embed, threads)
@@ -182,7 +182,7 @@ class REditorTasksCog(commands.Cog):
 
     async def get_thumbnail_channel(self) -> discord.TextChannel:
         for guild in self.bot.guilds:
-            category = modules.cogs.reditor.REditorCog.get_reditor_category(guild)
+            category = modules.util.discordutils.get_reditor_category(guild)
             if not category:
                 continue
 
@@ -286,7 +286,7 @@ class REditorTasksCog(commands.Cog):
 
     def get_tiktok_channel(self) -> discord.TextChannel:
         for g in self.bot.guilds:
-            category = modules.cogs.reditor.REditorCog.get_reditor_category(g)
+            category = modules.util.discordutils.get_reditor_category(g)
             if not category:
                 continue
             tiktok_channel = discord.utils.get(category.text_channels, name="tiktoks")
@@ -297,7 +297,7 @@ class REditorTasksCog(commands.Cog):
     async def task_update_reditor_category_name(self) -> None:
         category = None
         for g in self.bot.guilds:
-            category = modules.cogs.reditor.REditorCog.get_reditor_category(g)
+            category = modules.util.discordutils.get_reditor_category(g)
             if category is not None:
                 break
         if category is None:
