@@ -484,18 +484,28 @@ class REditorCog(commands.Cog):
         response += f"\n\n*Tokens used: {tokens.prompt}/{tokens.completion} __(€{tokens.cost():.3f})__*"
 
         for e in emoji.emoji_list(response):
-            response += f"\nhttps://emojiapi.dev/api/v1/{ord(e['emoji']):X}/512.png"
+            try:
+                response += f"\nhttps://emojiapi.dev/api/v1/{ord(e['emoji']):X}/512.png"
+            except:
+                pass
 
         await interaction.edit_original_response(
             content=response,
         )
 
     @reditor.command(name="shorten", description="Shorten a youtube URL")
-    async def cmd_community_post(self, interaction: discord.Interaction, url: str) -> None:
+    async def cmd_shorten_url(self, interaction: discord.Interaction, url: str) -> None:
         match = re.findall(r"v=([^=&]*)", url)
         await interaction.response.send_message(
             content=f"https://youtu.be/{match[0]}"
         )
+
+    @discord.app_commands.command(name="emoji-image", description="Get an image of one or more emojis")
+    async def cmd_emoji_image(self, interaction: discord.Interaction, emoji: str) -> None:
+        await interaction.response.send_message(
+            content=f"\nhttps://emojiapi.dev/api/v1/{ord(emoji[0]):X}/512.png"
+        )
+
 
 
 async def setup(bot):
