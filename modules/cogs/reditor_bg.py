@@ -1,4 +1,5 @@
 import os
+import math
 import discord
 import aiofiles
 import asyncio
@@ -303,16 +304,23 @@ class REditorTasksCog(commands.Cog):
         if category is None:
             return
 
+        total_ready = 0
+        now = datetime.now()
+        last_upload_t = await pgsql.owner.get_config("rdt_last-upload")
+        if last_upload_t is not None:
+            last_upload = datetime.fromtimestamp(int(last_upload_t))
+            total_ready = max(math.ceil((last_upload-now).seconds/86400), 0)
+
         uploadable = await pgsql.reditor.get_uploadable()
         exportable = await pgsql.reditor.get_exportable()
-        total_ready = len(uploadable) + len(exportable)
+        total_ready += len(uploadable) + len(exportable)
         emoji = "🟢"
-        if total_ready == 0 or len(uploadable) == 0:
+        if total_ready == 0:
             emoji = "🔴"
         elif total_ready == 1:
             emoji = "🟡"
 
-        await category.edit(name=f"{emoji}・REditor ({len(uploadable)}/{len(exportable)})")
+        await category.edit(name=f"{emoji}・REditor ({total_ready})")
 
 
 async def setup(bot):
