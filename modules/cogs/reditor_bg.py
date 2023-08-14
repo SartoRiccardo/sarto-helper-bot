@@ -309,7 +309,7 @@ class REditorTasksCog(commands.Cog):
         last_upload_t = await pgsql.owner.get_config("rdt_last-upload")
         if last_upload_t is not None:
             last_upload = datetime.fromtimestamp(float(last_upload_t))
-            total_uploaded = max(math.ceil((last_upload-now).seconds/86400), 0)
+            total_uploaded = max(math.ceil((last_upload-now).total_seconds()/86400), 0)
 
         uploadable = await pgsql.reditor.get_uploadable()
         exportable = await pgsql.reditor.get_exportable()
