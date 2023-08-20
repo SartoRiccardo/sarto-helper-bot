@@ -312,13 +312,13 @@ class REditorTasksCog(commands.Cog):
             return 0
 
         now = datetime.now()
-        v_total_uploaded, v_uploadable, v_exportable = asyncio.gather(
+        v_total_uploaded, v_uploadable, v_exportable = await asyncio.gather(
             get_days_left("last-upload"),
             pgsql.reditor.get_uploadable(),
             pgsql.reditor.get_exportable(),
         )
 
-        s_total_uploaded, s_uploadable, s_exportable = asyncio.gather(
+        s_total_uploaded, s_uploadable, s_exportable = await asyncio.gather(
             get_days_left("shorts-last-upload"),
             pgsql.reditor.get_uploadable(shorts=True),
             pgsql.reditor.get_exportable(shorts=True),
