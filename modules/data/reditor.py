@@ -24,7 +24,7 @@ async def get_exportable(shorts=False, conn=None):
         SELECT *
         FROM rdt_videos
         WHERE NOT exported
-          AND thumbnail IS NOT NULL
+          AND title IS NOT NULL
           AND {"" if shorts else "NOT"} is_short
     """)
 

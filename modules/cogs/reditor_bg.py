@@ -304,23 +304,37 @@ class REditorTasksCog(commands.Cog):
         if category is None:
             return
 
-        total_uploaded = 0
-        now = datetime.now()
-        last_upload_t = await pgsql.owner.get_config("rdt_last-upload")
-        if last_upload_t is not None:
-            last_upload = datetime.fromtimestamp(float(last_upload_t))
-            total_uploaded = max(math.ceil((last_upload-now).total_seconds()/86400), 0)
+        async def get_days_left(key: str) -> int:
+            last_upload_t = await pgsql.owner.get_config(f"rdt_{key}")
+            if last_upload_t is not None:
+                last_upload = datetime.fromtimestamp(float(last_upload_t))
+                return max(math.ceil((last_upload-now).total_seconds()/86400), 0)
+            return 0
 
-        uploadable = await pgsql.reditor.get_uploadable()
-        exportable = await pgsql.reditor.get_exportable()
-        total_ready = len(uploadable) + len(exportable)
+        now = datetime.now()
+        v_total_uploaded, v_uploadable, v_exportable = asyncio.gather(
+            get_days_left("last-upload"),
+            pgsql.reditor.get_uploadable(),
+            pgsql.reditor.get_exportable(),
+        )
+
+        s_total_uploaded, s_uploadable, s_exportable = asyncio.gather(
+            get_days_left("shorts-last-upload"),
+            pgsql.reditor.get_uploadable(shorts=True),
+            pgsql.reditor.get_exportable(shorts=True),
+        )
+
+        v_total_ready = len(v_uploadable) + len(v_exportable)
+        s_total_ready = len(s_uploadable) + len(s_exportable)
         emoji = "🟢"
-        if total_uploaded == 0:
+        if v_total_uploaded == 0:
             emoji = "🔴"
-        elif total_uploaded == 1:
+        elif v_total_uploaded == 1 or s_total_uploaded == 0:
             emoji = "🟡"
 
-        await category.edit(name=f"{emoji}・REditor ({total_uploaded}/{total_ready})")
+        await category.edit(name=f"{emoji}・REditor "
+                                 f"「{v_total_uploaded}/{s_total_uploaded}」 "
+                                 f"({v_total_ready}/{s_total_ready})")
 
 
 async def setup(bot):

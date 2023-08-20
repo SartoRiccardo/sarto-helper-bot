@@ -243,22 +243,24 @@ class REditorCog(commands.Cog):
         Check if a message is adding metadata to a video (title/thumbnail).
         Fired by on_message
         """
-        if (len(message.attachments) == 0 and "https://" not in message.content) or \
-                message.reference is None or \
+        if message.reference is None or \
                 not self.is_thumbnail_channel(message.reference.guild_id, message.reference.channel_id):
             return
+        has_thumbnail = len(message.attachments) > 0 or "https://" in message.content
 
-        if "https://" in message.content:
-            img_start_idx = message.content.index("https://")
-            thumbnail = message.content[img_start_idx:]
-            message.content = message.content[:img_start_idx].strip()
-        else:
-            thumbnail = message.attachments[0].url
+        thumbnail = None
+        if has_thumbnail:
+            if "https://" in message.content:
+                img_start_idx = message.content.index("https://")
+                thumbnail = message.content[img_start_idx:]
+                message.content = message.content[:img_start_idx].strip()
+            else:
+                thumbnail = message.attachments[0].url
 
         reply_id = message.reference.message_id
         title = message.content
-        is_short = "\N{SHORTS}" in title
-        title = title.replace("\N{SHORTS}", "")
+        is_short = "\N{SHORTS}" in title or not has_thumbnail
+        title = title.replace("\N{SHORTS}", "").strip()
 
         await pgsql.reditor.set_video_meta(reply_id, title, thumbnail, is_short=is_short)
 
