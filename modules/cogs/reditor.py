@@ -139,28 +139,28 @@ class REditorCog(commands.Cog):
 
         threads = await pgsql.reditor.get_threads(payload.message_id, filter=chosen_threads)
         messages = []
-        tokens_used = modules.util.chatgpt.PrompTokens()
+        # tokens_used = modules.util.chatgpt.PrompTokens()
         for t in threads:
-            embed = discord.Embed(description="Something went wrong loading this!")
-            try:
-                embed, tokens = await REditorCog.make_embed(t["title"], cdn_channel)
-            except Exception as exc:
-                await modules.util.logger.Logger.log(
-                    modules.util.log_events.LogError(traceback.format_exc()[:1900])
-                )
-            tokens_used += tokens
+            # embed = discord.Embed(description="Something went wrong loading this!")
+            # try:
+            #     embed, tokens = await REditorCog.make_embed(t["title"], cdn_channel)
+            # except Exception as exc:
+            #     await modules.util.logger.Logger.log(
+            #         modules.util.log_events.LogError(traceback.format_exc()[:1900])
+            #     )
+            # tokens_used += tokens
             messages.append(
                 await thumbnail_channel.send(
                     f"Reply with a title and a thumbnail for **{t['title']}**",
-                    embed=embed,
+                    # embed=embed,
                 )
             )
         await pgsql.reditor.choose_threads(
             [(threads[i]["id"], messages[i].id) for i in range(len(threads))]
         )
-        await modules.util.logger.Logger.log(modules.util.log_events.LogTokensUsedGPT(
-            tokens_used.prompt, tokens_used.completion
-        ))
+        # await modules.util.logger.Logger.log(modules.util.log_events.LogTokensUsedGPT(
+        #     tokens_used.prompt, tokens_used.completion
+        # ))
 
     @staticmethod
     async def make_embed(thread_title: str,
